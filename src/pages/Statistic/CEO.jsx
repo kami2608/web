@@ -13,17 +13,31 @@ import { itemsCEO } from "../../components/Navbar/ItemInfor";
 const StatisticCEO = () => {
   const orders = useLiveQuery(() => dexieDB.table("orderHistory").toArray());
   const ordersGD = useLiveQuery(() =>
-  dexieDB
-    .table("orderHistory")
-    .toArray()
-    .then((result) => result.filter((order) => order.currentLocation.substring(0, 2) === "GD"))
+  dexieDB.table("orderHistory").toArray().then((result) =>
+    result.filter((order) => {
+       if (order.currentLocation && typeof order.currentLocation === "string") {
+       return order.currentLocation.substring(0, 2) === "GD";
+      }
+    })
+  )
 );
 const ordersTK = useLiveQuery(() =>
-  dexieDB
-    .table("orderHistory")
-    .toArray()
-    .then((result) => result.filter((order) => order.currentLocation.substring(0, 2) === "TK"))
+  dexieDB.table("orderHistory").toArray().then((result) =>
+    result.filter((order) => {
+       if (order.currentLocation && typeof order.currentLocation === "string") {
+       return order.currentLocation.substring(0, 2) === "TK";
+      }
+    })
+  )
 );
+  // const ordersTK = useLiveQuery(() =>
+  //   dexieDB
+  //     .table("orderHistory")
+  //     .toArray()
+  //     .then((result) =>
+  //       result.filter((order) => order.currentLocation.substring(0, 2) === "TK")
+  //     )
+  // );
   const [graph, setGraph] = useState([
     {
       id: "statistic",
@@ -73,52 +87,57 @@ const ordersTK = useLiveQuery(() =>
   const [TKsentDateList, setTKSentDateList] = useState([]);
   const [TKreceiveDateList, setTKReceiveDateList] = useState([]);
 
-
   const GDcenterOption = ["Tất cả"];
-    for (let i = 1; i <= 64; i++) {
-      const GDItem = `GD${i.toString().padStart(2, '0')}`;
-      GDcenterOption.push(GDItem);
-    }
+  for (let i = 1; i <= 64; i++) {
+    const GDItem = `GD${i.toString().padStart(2, "0")}`;
+    GDcenterOption.push(GDItem);
+  }
 
-    const TKcenterOption = ["Tất cả"];
-      for (let i = 1; i <= 21; i++) {
-        const TKItem = `TK${i.toString().padStart(2, '0')}`;
-        TKcenterOption.push(TKItem);
-      }
-  
+  const TKcenterOption = ["Tất cả"];
+  for (let i = 1; i <= 21; i++) {
+    const TKItem = `TK${i.toString().padStart(2, "0")}`;
+    TKcenterOption.push(TKItem);
+  }
 
   useEffect(() => {
-    if(!ordersGD) return;
+    if (!ordersGD) return;
     setFilteredGD(
-      GDcenter === "Tất cả" ? ordersGD : ordersGD.filter((order) => order.currentLocation === GDcenter)
-    )
-  },[ordersGD, GDcenter])
-  
+      GDcenter === "Tất cả"
+        ? ordersGD
+        : ordersGD.filter((order) => order.currentLocation === GDcenter)
+    );
+  }, [ordersGD, GDcenter]);
+
   console.log(GDcenter);
 
   useEffect(() => {
-    if(!ordersTK) return;
+    if (!ordersTK) return;
     setFilteredTK(
-      TKcenter === "Tất cả" ? ordersTK : ordersTK.filter((order) => order.currentLocation === TKcenter)
-    )
-  },[ordersTK, TKcenter])
-  
+      TKcenter === "Tất cả"
+        ? ordersTK
+        : ordersTK.filter((order) => order.currentLocation === TKcenter)
+    );
+  }, [ordersTK, TKcenter]);
 
   useEffect(() => {
     if (!orders) return;
     setSentDateList(
-      orders.filter(
-        (order) =>
-          order.historyID.slice(-1) === "1" || order.historyID.slice(-1) === "2"
-      )
-      .map((order) => order["date"])
+      orders
+        .filter(
+          (order) =>
+            order.historyID.slice(-1) === "1" ||
+            order.historyID.slice(-1) === "2"
+        )
+        .map((order) => order["date"])
     );
     setReceiveDateList(
-      orders.filter(
-        (order) =>
-          order.historyID.slice(-1) === "3" || order.historyID.slice(-1) === "4"
-      )
-      .map((order) => order["date"])
+      orders
+        .filter(
+          (order) =>
+            order.historyID.slice(-1) === "3" ||
+            order.historyID.slice(-1) === "4"
+        )
+        .map((order) => order["date"])
     );
   }, [orders]);
 
@@ -154,15 +173,30 @@ const ordersTK = useLiveQuery(() =>
   // console.log(receiveDateList);
 
   useEffect(
-    () => updateGraph(sentDateList, receiveDateList, timeView, graph[0], setGraph),
+    () =>
+      updateGraph(sentDateList, receiveDateList, timeView, graph[0], setGraph),
     [sentDateList, receiveDateList, timeView]
   );
   useEffect(
-    () => updateGraph(GDsentDateList, GDreceiveDateList, timeView, graphGD[0], setGraphGD),
+    () =>
+      updateGraph(
+        GDsentDateList,
+        GDreceiveDateList,
+        timeView,
+        graphGD[0],
+        setGraphGD
+      ),
     [GDsentDateList, GDreceiveDateList, timeView]
   );
   useEffect(
-    () => updateGraph(TKsentDateList, TKreceiveDateList, timeView, graphTK[0], setGraphTK),
+    () =>
+      updateGraph(
+        TKsentDateList,
+        TKreceiveDateList,
+        timeView,
+        graphTK[0],
+        setGraphTK
+      ),
     [TKsentDateList, TKreceiveDateList, timeView]
   );
   const switchTime = (mode) => setTimeView(mode);
@@ -245,7 +279,12 @@ const ordersTK = useLiveQuery(() =>
                   height: "90%",
                 }}
               >
-                <BarsDataset data={graph} view={"all"} label1={"Hàng gửi"} label2={"Hàng nhận"}/>
+                <BarsDataset
+                  data={graph}
+                  view={"all"}
+                  label1={"Hàng gửi"}
+                  label2={"Hàng nhận"}
+                />
               </Box>
             </Box>
           </Stack>
@@ -294,7 +333,11 @@ const ordersTK = useLiveQuery(() =>
                   height: "50%",
                 }}
               >
-                <BarsDataset data={graphGD} label1={"Hàng gửi"} label2={"Hàng nhận"} />
+                <BarsDataset
+                  data={graphGD}
+                  label1={"Hàng gửi"}
+                  label2={"Hàng nhận"}
+                />
               </Box>
             </Box>
             {/* c3 */}
@@ -344,7 +387,11 @@ const ordersTK = useLiveQuery(() =>
                   height: "50%",
                 }}
               >
-                <BarsDataset data={graphTK} label1={"Hàng đi"} label2={"Hàng đến"}/>
+                <BarsDataset
+                  data={graphTK}
+                  label1={"Hàng đi"}
+                  label2={"Hàng đến"}
+                />
               </Box>
             </Box>
           </Stack>
