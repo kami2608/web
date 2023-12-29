@@ -41,9 +41,10 @@ const TransToTK = () => {
   const [orders, setOrders] = useState([]);
 
   function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
-    cost, status) {
+    cost, status, regisDate) {
+      if (regisDate == undefined) regisDate = "2023-12-23";
     return {id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
-    cost, status/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
+    cost, status, regisDate/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
   }
 
   
@@ -61,7 +62,8 @@ const TransToTK = () => {
             item.type,
             item.weight,
             item.cost,
-            item.status, 
+            item.status,
+            item.regisDate
             )
       );
       setOrders(newRows);
@@ -134,7 +136,7 @@ const TransToTK = () => {
   useEffect(() => {
     genId();
     return;
-  }, [data])
+  }, [openCreateShipment]);
 
   //Xử lý Xác nhận tạo đơn
   const submit = async() => {
@@ -293,7 +295,7 @@ const TransToTK = () => {
   };
 
   const filteredOrders = orders.filter((order) => {
-    const formattedRegisDate = order.regisDate; //formatTime(order.regisDate);
+    const formattedRegisDate = new Date(order.regisDate); //formatTime(order.regisDate);
     return (
       (!selectedOrderID || order.id === selectedOrderID.label) &&
       /*(!selectedTransactionPoint ||
@@ -382,7 +384,7 @@ const TransToTK = () => {
             renderInput={(params) => <TextField {...params} label="Năm" />}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={2} lg={2}>
+     {/*   <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={status}
@@ -396,7 +398,7 @@ const TransToTK = () => {
               />
             )}
           />
-        </Grid>
+            </Grid> */}
       </Grid>
 
       <Table>

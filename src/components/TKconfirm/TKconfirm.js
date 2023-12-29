@@ -293,7 +293,7 @@ const submit = async() => {
       
       
     } catch (error) {
-      console.error('Loi khi xác nhận:', error);
+      console.error('Loi khi xác nhận đơn chuyển:', error);
     }
     
   };
