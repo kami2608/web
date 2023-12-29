@@ -10,7 +10,6 @@ import {
   TableHead,
   TableRow
 } from '@mui/material';
-import "../../assets/styles/Print.css";
 
 const PrintShipmentDialog = ({ orders, employee }) => {
   return (
