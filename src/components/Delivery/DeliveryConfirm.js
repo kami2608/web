@@ -13,9 +13,7 @@ import {
   TextField,
   Box,
   Autocomplete,
-  Form,
-  FormGroup,
-  TableContainer,
+  
   Tab,
   TableSortLabel,
   Grid,
@@ -30,7 +28,7 @@ import { collection, doc, getDocs, getDoc, setDoc, query, where } from "firebase
 
 const DeliveryConfirm = () => {
   const center = "GD22";
-  const fetchedDeliveryBills = [
+  /*const fetchedDeliveryBills = [
     {
       id: "S246",
       createDate: "2023-05-20",
@@ -75,7 +73,7 @@ const DeliveryConfirm = () => {
   const displayDeliveryBills = fetchedDeliveryBills.map((bill) => ({
     ...bill,
     status: "Chưa xác nhận",
-  }));
+  }));*/
 
   const [deliveryBills, setDeliveryBills] = useState([]);
   const [openDetailsDelivery, setOpenDetailsDelivery] = useState(false); //quản lý trạng thái dialog DeliveryDetails
@@ -91,7 +89,7 @@ const DeliveryConfirm = () => {
 
   const getDeliveryBills = async() => {
     const deliRef = collection(fireDB, "delivery");
-    const q = query(deliRef, where('GDpoint', '==', center), where('status', '==', 'chưa xác nhận'));
+    const q = query(deliRef, where('Gdpoint', '==', center), where('status', '==', 'chưa xác nhận'));
     const querySnapshot = await getDocs(q);
     const fetchedDelis = [];
     querySnapshot.forEach((doc) => {
@@ -127,7 +125,6 @@ const DeliveryConfirm = () => {
           .anyOf(orderIdArray)
           .toArray();
     
-        // Xử lý dữ liệu, ví dụ: log ra console
         console.log('Đơn hàng có id thuộc mảng orderIdArray:', data);
         const newDeliDetails = {
           ...deliveryDetails,
@@ -187,7 +184,7 @@ const DeliveryConfirm = () => {
 
   const handleConfirmDelivery = () => {
     if (selectedDeliveryBills.length > 0) {
-      submit();
+      submitSuccessful();
     }
     setDeliveryBills((prevDeliveryBills) => {
       const updatedDeliveryBills = prevDeliveryBills.map((delivery) =>
@@ -202,12 +199,12 @@ const DeliveryConfirm = () => {
     setSelectedOrders([]);
   };
   //Ghi vào CSDL
-  const submit = async() => {
+  const submitSuccessful = async() => {
     try {
       for (let i=0; i<selectedDeliveryBills.length; i++) {
         //cập nhật bảng delivery trong firestore
         const newData = {
-          status: "đã xác nhận",
+          status: "thành công",
         }
         const docRef = doc(fireDB, "delivery", selectedDeliveryBills[i]);
         setDoc(docRef, newData, {merge: true});
@@ -220,7 +217,7 @@ const DeliveryConfirm = () => {
           .where("id")
           .equals(selectedOrders[i])
           .modify((order) => {
-            order.status = "Đã giao thành công";
+            order.status = "Đã giao thành công cho người nhận";
           })
 
         //update bảng orderHistory trong firestore
@@ -229,8 +226,61 @@ const DeliveryConfirm = () => {
         const newHistoryData = {
           //...querySnapshot.doc.data(),
           currentLocation: center,
-          orderStatus: "Đã giao cho người nhận",
+          orderStatus: "Đã giao thành công cho người nhận",
           Description: "Đã giao thành công cho người nhận",
+        }
+        setDoc(docRef, newHistoryData, {merge: true});
+      }
+      
+    } catch (error) {
+      console.error('Loi khi xác nhận giao hàng:', error);
+    }   
+  };
+
+  const handleUnsuccessfulDelivery = () => {
+    if (selectedDeliveryBills.length > 0) {
+      submitUnsuccessful();
+    }
+    setDeliveryBills((prevDeliveryBills) => {
+      const updatedDeliveryBills = prevDeliveryBills.map((delivery) =>
+        selectedDeliveryBills.includes(delivery.id) &&
+        delivery.status === "Chưa xác nhận"
+          ? { ...delivery, status: "Không thành công", /*confirmed: true*/ }
+          : delivery
+      );
+      return updatedDeliveryBills;
+    });
+  }
+
+  const submitUnsuccessful = async() => {
+    try {
+      for (let i=0; i<selectedDeliveryBills.length; i++) {
+        //cập nhật bảng delivery trong firestore
+        const newData = {
+          status: "không thành công",
+        }
+        const docRef = doc(fireDB, "delivery", selectedDeliveryBills[i]);
+        setDoc(docRef, newData, {merge: true});
+      }
+      
+
+      for (let i = 0; i < selectedOrders.length; i++) {
+        //update dexie bảng orders
+        await dexieDB.table("orders")
+          .where("id")
+          .equals(selectedOrders[i])
+          .modify((order) => {
+            order.status = "Đã giao không thành công cho người nhận";
+          })
+
+        //update bảng orderHistory trong firestore
+        const docRef = doc(fireDB, "orderHistory", selectedOrders[i]+"_5");
+        //const querySnapshot = getDoc(docRef);
+        const newHistoryData = {
+          //...querySnapshot.doc.data(),
+          currentLocation: "",
+          orderStatus: "Đã giao không thành công cho người nhận",
+          Description: "Đã giao không thành công cho người nhận",
         }
         setDoc(docRef, newHistoryData, {merge: true});
       }
@@ -251,7 +301,7 @@ const DeliveryConfirm = () => {
   const createArray = (start, end) => {
     let array = [];
     for (let i = start; i <= end; i++) {
-      let object = { label: i };
+      let object = { label: i.toString() };
       array.push(object);
     }
     return array;
@@ -493,7 +543,20 @@ const DeliveryConfirm = () => {
           onMouseOut={(e) => (e.target.style.backgroundColor = "#4CAF50")}
           onClick={handleConfirmDelivery}
         >
-          Xác nhận
+          Xác nhận giao thành công
+        </Button>
+
+      </Box>
+
+      <Box>
+        <Button
+          variant="contained"
+          style={{ backgroundColor: "#4CAF50", color: "#fff" }}
+          onMouseOver={(e) => (e.target.style.backgroundColor = "#003e29")}
+          onMouseOut={(e) => (e.target.style.backgroundColor = "#4CAF50")}
+          onClick={handleUnsuccessfulDelivery}
+        >
+          Giao không thành công
         </Button>
       </Box>
 
