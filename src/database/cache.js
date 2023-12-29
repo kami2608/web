@@ -14,15 +14,16 @@ import { useLiveQuery } from "dexie-react-hooks";
 
 const dexieDB = new Dexie("cachedUser38");
 dexieDB.version(1).stores({
-  GDsystem: "id",
-  TKsystem: "id",
+  GDsystem: "id, name",
+  TKsystem: "id, name",
   LeadGDacc: "id",
   LeadTKacc: "id",
   NVTKacc: "id",
   GDVacc: "id",
   orderHistory: "historyID, orderID, currentLocation",
-  orders: "id",
-  shipment: "id",
+  orders: "id, status, startGDpoint, startTKpoint, endTKpoint, endGDpoint",
+  shipment: "id, status, startGDpoint, startTKpoint, endTKpoint, endGDpoint",
+  delivery: "id, status, GDpoint"
 });
 
 
