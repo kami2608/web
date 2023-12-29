@@ -28,56 +28,7 @@ const ShipmentDetailsDialog = ({
   clickDetailOrder,
 }) => {
   
-  //const details = shipmentDetails.details;
-  /*const orderIdArray = (shipmentDetails != null) ? shipmentDetails.details.split(", ").map(id => id.trim()):["DH001", "DH002"];
-
-  const data = useLiveQuery(() =>
-    dexieDB
-      .table("orders")
-      .where('id')
-      .anyOf(orderIdArray)
-      .toArray()
-  );
-
-
-  useEffect(() => {
-    if (data) {
-      const newRows = data.map((item) => 
-        createData( item.id,
-            item.senderName,
-            item.senderPhone,
-            item.senderAddress,
-            item.receiverName,
-            item.receiverPhone,
-            item.receiverAddress,
-            
-            item.type,
-            item.weight,
-            item.cost,
-            item.status, 
-            )
-      );
-      setOrders(newRows);
-      //console.log("shipmentDetails.details:", shipmentDetails.details);
-      //console.log("orderIdArray:", orderIdArray);
-      console.log("Results from DexieDB query:", data);
-    }
-  }, [data]);
-
-  /*useEffect(() => {
-    //if (shipmentDetails.orders === undefined) {
-      dexieDB.table('orders')
-        .where('id')
-        .anyOf(orderIdArray)
-        .toArray()
-        .then(results => {
-      setOrders(results);
-  })
-  .catch(error => {
-    console.error('Lỗi khi truy vấn:', error);
-  });
-   // }
-  }, [shipmentDetails]);*/
+  
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -93,14 +44,14 @@ const ShipmentDetailsDialog = ({
         {shipmentDetails && (
           <Box sx={{ padding: "24px" }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
+              {/*<Grid item xs={12} sm={6}>
                 <Typography variant="subtitle1" color="#5CAF50">
                   <strong>Tên nhân viên:</strong>
                 </Typography>
                 <Typography variant="body2" gutterBottom>
                   {shipmentDetails.details}
-                </Typography>
-              </Grid>
+        </Typography>
+              </Grid>*/}
               {/*<Grid item xs={12} sm={6}>
                 <Typography variant="subtitle1" color="#5CAF50">
                   <strong>Điểm giao dịch:</strong>
@@ -154,9 +105,9 @@ const ShipmentDetailsDialog = ({
                     >
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{order.id}</TableCell>
-                      <TableCell>{order.type}</TableCell>
-                      <TableCell>{order.weight}</TableCell>
-                      <TableCell>{order.cost}</TableCell>
+                      <TableCell>{order.type || ""}</TableCell>
+                      <TableCell>{order.weight || ""}</TableCell>
+                      <TableCell>{order.cost || ""}</TableCell>
                     </TableRow>
                     ))}
                 </TableBody>
