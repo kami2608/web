@@ -9,6 +9,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import InputAdornment from "@mui/material/InputAdornment";
 import InputLabel from "@mui/material/InputLabel";
+import Autocomplete from "@mui/material/Autocomplete";
 import { useState } from "react";
 import { useEffect, useRef } from "react";
 /*import Table from '@mui/material/Table';
@@ -110,7 +111,7 @@ export default function PackageForm() {
 
   const calculateCost = (weight, distance) => {
     if (isNaN(weight) || isNaN(distance)) return "";
-    else return weight * distance * 1000;
+    else return weight * distance * 10000;
   };
 
   const handleDateChange = (event) => {
@@ -178,11 +179,11 @@ export default function PackageForm() {
           status: "Chưa xử lý",
         };
         //Thêm vào bảng orders trong FireStore
-        /*const docRef = doc(fireDB, "orders", newData.id);
-        setDoc(docRef, newData);*/
+        const docRef = doc(fireDB, "orders", newData.id);
+        setDoc(docRef, newData);
       
         //Thêm vào bảng orders trong dexie và firestore
-        addDataToFireStoreAndDexie("orders", newData);
+        addDataToDexieTable("orders", {...newData, regisDate});
 
         //setInputs(defaultForm);
       } catch (error) {
@@ -324,6 +325,7 @@ export default function PackageForm() {
               onChange={handleChange}>
               </TextField>*/}
             </Stack>
+            <Stack direction="row" spacing={2}>
             <TextField
               required
               name="id"
@@ -363,6 +365,7 @@ export default function PackageForm() {
               value={inputs.endGDpoint}
               onChange={handleChange}
             />
+            </Stack>
 
             {/*Thông tin về người gửi*/}
             <h3>Thông tin người gửi</h3>
@@ -484,7 +487,7 @@ export default function PackageForm() {
             </Button>
           </Box>
 
-          <Box></Box>
+          
         </>
       )}
     </>
