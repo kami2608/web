@@ -228,12 +228,12 @@ const App = () => {
           startTKpoint: systemData.startTKpoint,
           endTKpoint: systemData.endTKpoint,
           endGDpoint: systemData.endGDpoint,
-          startGDpointName: systemData.startGDpoint,
-          startTKpointName: systemData.startTKpoint,
-          endTKpointName: systemData.endTKpoint,
-          endGDpointName: systemData.endGDpoint,
+          startGDpointName: systemData.startGDpointName,
+          startTKpointName: systemData.startTKpointName,
+          endTKpointName: systemData.endTKpointName,
+          endGDpointName: systemData.endGDpointName,
           status: systemData.status,
-          orderStatus: orderStatus,
+          orderStatus: "Chưa tạo đơn",
         });
         return;
       });
@@ -256,10 +256,10 @@ const App = () => {
           startTKpoint: systemData.startTKpoint,
           endTKpoint: systemData.endTKpoint,
           endGDpoint: systemData.endGDpoint,
-          startGDpointName: systemData.startGDpoint,
-          startTKpointName: systemData.startTKpoint,
-          endTKpointName: systemData.endTKpoint,
-          endGDpointName: systemData.endGDpoint,
+          startGDpointName: systemData.startGDpointName,
+          startTKpointName: systemData.startTKpointName,
+          endTKpointName: systemData.endTKpointName,
+          endGDpointName: systemData.endGDpointName,
           status: systemData.status,
         });
         return;
@@ -344,7 +344,7 @@ const App = () => {
               <Route path="/regis" element={<RegisOrder />} />
               <Route
                 path="/TKpoint/createShipment"
-                element={<CreateTransToTK />}
+                element={<CreateTransToTK/>}
               />
               <Route
                 path="/TKpoint/confirmShipment"
