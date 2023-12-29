@@ -228,6 +228,7 @@ const App = () => {
           startTKpoint: systemData.startTKpoint,
           endTKpoint: systemData.endTKpoint,
           endGDpoint: systemData.endGDpoint,
+          status: systemData.status,
         });
         return;
       });
