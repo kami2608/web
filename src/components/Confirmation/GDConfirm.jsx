@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  AppBar,
   Container,
   Table,
   TableHead,
@@ -8,29 +7,8 @@ import {
   TableRow,
   TableCell,
   Checkbox,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Typography,
   IconButton,
-  TextField,
   Box,
-  Autocomplete,
-  Card,
-  CardContent,
-  Input,
-  CardBody,
-  CardTitle,
-  Form,
-  FormGroup,
-  ListItemText,
-  List,
-  ListItem,
-  Divider,
-  TableContainer,
-  Tab,
   TableSortLabel,
   Grid,
 } from "@mui/material";
@@ -39,7 +17,6 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import Pagination from '@mui/material/Pagination';
 import ShipmentDetailsDialog from "../Dialog/ShipmentDetailsDialog";
 import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
-import ShipmentTable from "../Table/ShipmentTable";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
 import { dexieDB, updateDataFromFireStoreAndDexie, updateDataFromDexieTable, addDataToFireStoreAndDexie, addDataToDexieTable, syncDexieToFirestore } from "../../database/cache";
@@ -152,7 +129,7 @@ const GDConfirm = () => {
 
   const closeDetailsShipment = () => {
     setOpenDetailsShipment(false);
-    setCurrentShipment(null); // Xóa currentShipment khi đóng Dialog
+    setCurrentShipment(null);
   };
 
   const clickDetailOrder = (order) => {
@@ -173,39 +150,54 @@ const GDConfirm = () => {
     setSelectedShipments(newSelectedShipments);
   };
 
+  async function getShipmentDetailsById(shipmentID) {
+    const shipment = dataShipments.find(s => s.id === shipmentID);
+    if (shipment) {
+      // Nếu tìm thấy shipment, trả về dữ liệu sau khi đã chuyển đổi
+      return shipment;
+    } else {
+      // Nếu không tìm thấy shipment, trả về null hoặc thông báo lỗi
+      console.log(`Không tìm thấy shipment với ID: ${shipmentID}`);
+      return null;
+    }
+  }
+
   const handleConfirmShipment = async () => {
     // 1. Update shipment status
-    for (const shipment of selectedShipments) {
+    for (const shipmentID of selectedShipments) {
       const updatedShipmentData = { status: "đã xác nhận" };
-    //  await updateDataFromFireStoreAndDexie("shipment", shipment.id, updatedShipmentData);
+      await updateDataFromFireStoreAndDexie("shipment", shipmentID, updatedShipmentData);
     }
-  
+
     // 2. Update order histories
-    const updateHistoriesPromises = selectedShipments.flatMap(shipment => {
-      if (!shipment.ordersList) return;
+    const updateHistoriesPromises = selectedShipments.flatMap(async (shipmentID) => {
+      const shipment = await getShipmentDetailsById(shipmentID);
+      if (!shipment || !shipment.ordersList) return [];
+
       return shipment.ordersList.split(",").map(orderId => {
         const historyId = `${orderId}_2`; // startGDpoint -> startTKpoint
         const updatedHistoryData = {
           orderStatus: "Đã xác nhận",
         };
-       // return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
+        console.log("Updating historyId", historyId, "with data", updatedHistoryData);
+        return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
       });
     });
-  
+
     // 3. Wait for all updates to complete
-   await Promise.all(updateHistoriesPromises);
+     await Promise.all(updateHistoriesPromises);
     console.log("Đã cập nhật DexieDB thành công!");
-  
+
     // 4. Sync updated data to Firestore
-   syncDexieToFirestore("shipment", "shipment", ["status"]);
-   syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
-  
+     syncDexieToFirestore("shipment", "shipment", ["status"]);
+     syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
+
     // 5. Update local state
     const updatedShipments = shipments.map(shipment =>
       selectedShipments.includes(shipment.id) ? { ...shipment, status: "đã xác nhận" } : shipment
     );
     setShipments(updatedShipments);
-  
+
     // 6. Clear selected shipments
     setSelectedShipments([]);
   };
@@ -317,7 +309,6 @@ const GDConfirm = () => {
     setSelectedStatus(value);
   };
 
-
   const filteredShipments = shipments.filter((shipment) => {
     const formattedDeliveryTime = formatDeliveryTime(shipment.date);
     return (
@@ -414,9 +405,9 @@ const GDConfirm = () => {
             <TableCell>
               <strong>Từ điểm giao dịch</strong>
               <TableSortLabel
-                active={sortConfig.key === 'startGDpoint'}
-                direction={sortConfig.key === 'startGDpoint' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('startGDpoint')}
+                active={sortConfig.key === 'startGDpointName'}
+                direction={sortConfig.key === 'startGDpointName' ? sortConfig.direction : 'asc'}
+                onClick={() => sortData('startGDpointName')}
               />
             </TableCell>
             <TableCell>

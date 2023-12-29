@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  AppBar,
   Container,
   Table,
   TableHead,
@@ -8,29 +7,8 @@ import {
   TableRow,
   TableCell,
   Checkbox,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Typography,
   IconButton,
-  TextField,
   Box,
-  Autocomplete,
-  Card,
-  CardContent,
-  Input,
-  CardBody,
-  CardTitle,
-  Form,
-  FormGroup,
-  ListItemText,
-  List,
-  ListItem,
-  Divider,
-  TableContainer,
-  Tab,
   TableSortLabel,
   Grid,
 } from "@mui/material";
@@ -101,7 +79,7 @@ const TKConfirm = () => {
     dexieDB
       .table("TKsystem")
       .toArray());
-  console.log("tsys", TKSystem);
+  // console.log("tsys", TKSystem);
   const NVTKacc = useLiveQuery(() =>
     dexieDB
       .table("NVTKacc")
@@ -151,7 +129,7 @@ const TKConfirm = () => {
 
   const closeDetailsShipment = () => {
     setOpenDetailsShipment(false);
-    setCurrentShipment(null); // Xóa currentShipment khi đóng Dialog
+    setCurrentShipment(null);
   };
 
   const clickDetailOrder = (order) => {
@@ -172,21 +150,36 @@ const TKConfirm = () => {
     setSelectedShipments(newSelectedShipments);
   };
 
+  async function getShipmentDetailsById(shipmentID) {
+    const shipment = dataShipments.find(s => s.id === shipmentID);
+    if (shipment) {
+      // Nếu tìm thấy shipment, trả về dữ liệu sau khi đã chuyển đổi
+      return shipment;
+    } else {
+      // Nếu không tìm thấy shipment, trả về null hoặc thông báo lỗi
+      console.log(`Không tìm thấy shipment với ID: ${shipmentID}`);
+      return null;
+    }
+  }
+
   const handleConfirmShipment = async () => {
     // 1. Update shipment status
-    for (const shipment of selectedShipments) {
+    for (const shipmentID of selectedShipments) {
       const updatedShipmentData = { status: "đã xác nhận" };
-      await updateDataFromFireStoreAndDexie("shipment", shipment.id, updatedShipmentData);
+      await updateDataFromFireStoreAndDexie("shipment", shipmentID, updatedShipmentData);
     }
 
     // 2. Update order histories
-    const updateHistoriesPromises = selectedShipments.flatMap(shipment => {
-      if (!shipment.ordersList) return;
+    const updateHistoriesPromises = selectedShipments.flatMap(async (shipmentID) => {
+      const shipment = await getShipmentDetailsById(shipmentID);
+      if (!shipment || !shipment.ordersList) return [];
+
       return shipment.ordersList.split(",").map(orderId => {
-        const historyId = `${orderId}_3`; // startTKpoint -> startGDpoint
+        const historyId = `${orderId}_3`; // startGDpoint -> startTKpoint
         const updatedHistoryData = {
           orderStatus: "Đã xác nhận",
         };
+        console.log("Updating historyId", historyId, "with data", updatedHistoryData);
         return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
       });
     });
@@ -196,8 +189,8 @@ const TKConfirm = () => {
     console.log("Đã cập nhật DexieDB thành công!");
 
     // 4. Sync updated data to Firestore
-    syncDexieToFirestore("shipment", "shipments", ["status"]);
-    syncDexieToFirestore("orderHistory", "orderHistories", ["orderStatus"]);
+    syncDexieToFirestore("shipment", "shipment", ["status"]);
+    syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
 
     // 5. Update local state
     const updatedShipments = shipments.map(shipment =>
@@ -208,7 +201,6 @@ const TKConfirm = () => {
     // 6. Clear selected shipments
     setSelectedShipments([]);
   };
-
 
   const TKpoints = [
     { label: "Bà Rịa - Vũng Tàu" },
@@ -371,9 +363,9 @@ const TKConfirm = () => {
             <TableCell>
               <strong>Từ điểm tập kết</strong>
               <TableSortLabel
-                active={sortConfig.key === 'startTKpoint'}
-                direction={sortConfig.key === 'startTKpoint' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('startTKpoint')}
+                active={sortConfig.key === 'startTKpointName'}
+                direction={sortConfig.key === 'startTKpointName' ? sortConfig.direction : 'asc'}
+                onClick={() => sortData('startTKpointName')}
               />
             </TableCell>
             <TableCell>
