@@ -59,8 +59,10 @@ export default function PackageForm() {
   const [distance, setDistance] = useState("");
   const [regisDate, setRegisDate] = useState("");
   const [view, setView] = useState("Create");
+  
   const handleBack = () => {
     setView("Create");
+    setInputs(defaultForm);
   };
 
   const handleChange = (event) => {
@@ -183,7 +185,7 @@ export default function PackageForm() {
         //Thêm vào bảng orders trong Dexie
         addDataToDexieTable("orders", newDataDexie);
 
-        setInputs(defaultForm);
+        //setInputs(defaultForm);
       } catch (error) {
         console.error("Loi khi add order trong fireDB:", error);
         alert("Loi khi add order trong fireDB");
@@ -244,12 +246,14 @@ export default function PackageForm() {
         const docRef = doc(fireDB, "orderHistory", orderHistory5.historyID);
         setDoc(docRef, orderHistory5);
         alert("Tạo đơn hàng thành công");
-        setInputs(defaultForm);
         setView("Print");
+        //setInputs(defaultForm);
       } catch (error) {
         console.log("Lỗi khi tạo đơn hàng");
       }
     };
+
+    
 
     const formValidate = () => {
       let error = 0;
@@ -275,6 +279,8 @@ export default function PackageForm() {
     };
     formValidate();
   };
+
+  
 
   //genId();
 
@@ -404,7 +410,8 @@ export default function PackageForm() {
                   fullWidth
                   label="Địa chỉ"
                   value={inputs.receiverAddress}
-                  onChange={handleReceiverAddressChange}
+                  onChange={handleChange}
+                  onBlur={handleReceiverAddressChange}
                 />
               </Stack>
             </div>
@@ -478,423 +485,3 @@ export default function PackageForm() {
     </>
   );
 }
-
-const addDexie = () => {
-  const data = [
-    {
-      id: "GD01",
-      name: "Ba Đình",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD02",
-      name: "Bình Thạnh",
-      Tkid: "TK02",
-      TKname: "Hồ Chí Minh",
-    },
-    {
-      id: "GD03",
-      name: "Cầu Giấy",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD04",
-      name: "Đống Đa",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD05",
-      name: "Hai Bà Trưng",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD06",
-      name: "Hoàn Kiếm",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD07",
-      name: "Hồng Bàng",
-      Tkid: "TK03",
-      TKname: "Hải Phòng",
-    },
-    {
-      id: "GD08",
-      name: "Ngô Quyền",
-      Tkid: "TK03",
-      TKname: "Hải Phòng",
-    },
-    {
-      id: "GD09",
-      name: "Tân Bình",
-      Tkid: "TK02",
-      TKname: "Hồ Chí Minh",
-    },
-    {
-      id: "GD10",
-      name: "Thanh Xuân",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD11",
-      name: "Ninh Kiều",
-      Tkid: "TK04",
-      TKname: "Cần Thơ",
-    },
-    {
-      id: "GD12",
-      name: "Liên Chiểu",
-      Tkid: "TK05",
-      TKname: "Đà Nẵng",
-    },
-    {
-      id: "GD13",
-      name: "Hải Châu",
-      Tkid: "TK05",
-      TKname: "Đà Nẵng",
-    },
-    {
-      id: "GD14",
-      name: "Thủ Dầu Một",
-      Tkid: "TK06",
-      TKname: "Bình Dương",
-    },
-    {
-      id: "GD15",
-      name: "Dĩ An",
-      Tkid: "TK06",
-      TKname: "Bình Dương",
-    },
-    {
-      id: "GD16",
-      name: "Thủ Đức",
-      Tkid: "TK02",
-      TKname: "Hồ Chí Minh",
-    },
-    {
-      id: "GD17",
-      name: "Biên Hòa",
-      Tkid: "TK07",
-      TKname: "Đồng Nai",
-    },
-    {
-      id: "GD18",
-      name: "Vũng Tàu",
-      Tkid: "TK08",
-      TKname: "Bà Rịa - Vũng Tàu",
-    },
-    {
-      id: "GD19",
-      name: "Buôn Ma Thuột",
-      Tkid: "TK09",
-      TKname: "Đắk Lắk",
-    },
-    {
-      id: "GD20",
-      name: "Quy Nhơn",
-      Tkid: "TK10",
-      TKname: "Bình Định",
-    },
-    {
-      id: "GD21",
-      name: "Nha Trang",
-      Tkid: "TK11",
-      TKname: "Khánh Hòa",
-    },
-    {
-      id: "GD22",
-      name: "Sơn Trà",
-      Tkid: "TK05",
-      TKname: "Đà Nẵng",
-    },
-    {
-      id: "GD23",
-      name: "Thanh Khê",
-      Tkid: "TK05",
-      TKname: "Đà Nẵng",
-    },
-    {
-      id: "GD24",
-      name: "Tây Hồ",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD25",
-      name: "Cẩm Lệ",
-      Tkid: "TK05",
-      TKname: "Đà Nẵng",
-    },
-    {
-      id: "GD26",
-      name: "Bắc Từ Liêm",
-      Tkid: "TK01",
-      TKname: "Hà Nội",
-    },
-    {
-      id: "GD28",
-      name: "Sơn Tây",
-      Tkid: "TK19",
-      TKname: "Quảng Ngãi",
-    },
-    {
-      id: "GD29",
-      name: "Quỳnh Phụ",
-      Tkid: "TK20",
-      TKname: "Thái Bình",
-    },
-    {
-      id: "GD30",
-      name: "Tam Dương",
-      Tkid: "TK18",
-      TKname: "Vĩnh Phúc",
-    },
-    {
-      id: "GD31",
-      name: "Hương Sơn",
-      Tkid: "TK12",
-      TKname: "Hà Tĩnh",
-    },
-    {
-      id: "GD32",
-      name: "Kinh Môn",
-      Tkid: "TK16",
-      TKname: "Hải Dương",
-    },
-    {
-      id: "GD33",
-      name: "Tứ Kỳ",
-      Tkid: "TK16",
-      TKname: "Hải Dương",
-    },
-    {
-      id: "GD34",
-      name: "Lập Thạch",
-      Tkid: "TK18",
-      TKname: "Vĩnh Phúc",
-    },
-    {
-      id: "GD35",
-      name: "Sông Lô",
-      Tkid: "TK18",
-      TKname: "Vĩnh Phúc",
-    },
-    {
-      id: "GD36",
-      name: "Phổ Yên",
-      Tkid: "TK15",
-      TKname: "Thái Nguyên",
-    },
-    {
-      id: "GD37",
-      name: "Sơn Tịnh",
-      Tkid: "TK19",
-      TKname: "Quảng Ngãi",
-    },
-    {
-      id: "GD38",
-      name: "Yên Khánh",
-      Tkid: "TK19",
-      TKname: "Ninh Bình",
-    },
-    {
-      id: "GD39",
-      name: "Thuận Bắc",
-      Tkid: "TK17",
-      TKname: "Ninh Thuận",
-    },
-    {
-      id: "GD40",
-      name: "Tiền Hải",
-      Tkid: "TK20",
-      TKname: "Thái Bình",
-    },
-    {
-      id: "GD41",
-      name: "Tam Điệp",
-      Tkid: "TK19",
-      TKname: "Ninh Bình",
-    },
-    {
-      id: "GD42",
-      name: "Cẩm Xuyên",
-      Tkid: "TK12",
-      TKname: "Hà Tĩnh",
-    },
-    {
-      id: "GD43",
-      name: "Nam Sách",
-      Tkid: "TK16",
-      TKname: "Hải Dương",
-    },
-    {
-      id: "GD44",
-      name: "Hồng Lĩnh",
-      Tkid: "TK12",
-      TKname: "Hà Tĩnh",
-    },
-    {
-      id: "GD45",
-      name: "Đồng Hỷ",
-      Tkid: "TK15",
-      TKname: "Thái Nguyên",
-    },
-    {
-      id: "GD46",
-      name: "Hương Thủy",
-      Tkid: "TK13",
-      TKname: "Huế",
-    },
-    {
-      id: "GD47",
-      name: "Tư Nghĩa",
-      Tkid: "TK19",
-      TKname: "Quảng Ngãi",
-    },
-    {
-      id: "GD48",
-      name: "Yên Mô",
-      Tkid: "TK19",
-      TKname: "Ninh Bình",
-    },
-    {
-      id: "GD49",
-      name: "Phong Điền",
-      Tkid: "TK13",
-      TKname: "Huế",
-    },
-    {
-      id: "GD50",
-      name: "Hương Trà",
-      Tkid: "TK13",
-      TKname: "Huế",
-    },
-    {
-      id: "GD51",
-      name: "Ninh Hải",
-      Tkid: "TK17",
-      TKname: "Ninh Thuận",
-    },
-    {
-      id: "GD52",
-      name: "Ninh Giang",
-      Tkid: "TK16",
-      TKname: "Hải Dương",
-    },
-    {
-      id: "GD53",
-      name: "Bình Xuyên",
-      Tkid: "TK18",
-      TKname: "Vĩnh Phúc",
-    },
-    {
-      id: "GD54",
-      name: "Bình Sơn",
-      Tkid: "TK19",
-      TKname: "Quảng Ngãi",
-    },
-    {
-      id: "GD55",
-      name: "Vĩnh Tường",
-      Tkid: "TK18",
-      TKname: "Vĩnh Phúc",
-    },
-    {
-      id: "GD56",
-      name: "Đông Hưng",
-      Tkid: "TK20",
-      TKname: "Thái Bình",
-    },
-    {
-      id: "GD57",
-      name: "Kim Sơn",
-      Tkid: "TK19",
-      TKname: "Ninh Bình",
-    },
-    {
-      id: "GD58",
-      name: "Từ Sơn",
-      Tkid: "TK14",
-      TKname: "Bắc Ninh",
-    },
-    {
-      id: "GD59",
-      name: "Định Hóa",
-      Tkid: "TK15",
-      TKname: "Thái Nguyên",
-    },
-    {
-      id: "GD60",
-      name: "Phú Bình",
-      Tkid: "TK15",
-      TKname: "Thái Nguyên",
-    },
-    {
-      id: "GD61",
-      name: "Ninh Sơn",
-      Tkid: "TK17",
-      TKname: "Ninh Thuận",
-    },
-    {
-      id: "GD62",
-      name: "Quế Võ",
-      Tkid: "TK14",
-      TKname: "Bắc Ninh",
-    },
-    {
-      id: "GD63",
-      name: "Thái Thụy",
-      Tkid: "TK20",
-      TKname: "Thái Bình",
-    },
-    {
-      id: "GD64",
-      name: "Trà Bồng",
-      Tkid: "TK19",
-      TKname: "Quảng Ngãi",
-    },
-  ];
-  const tkdata = [
-    { id: "TK01", name: "Hà Nội" },
-    { id: "TK02", name: "Hồ Chí Minh" },
-    { id: "TK03", name: "Hải Phòng" },
-    { id: "TK04", name: "Cần Thơ" },
-    { id: "TK05", name: "Đà Nẵng" },
-    { id: "TK06", name: "Bình Dương" },
-    { id: "TK07", name: "Đồng Nai" },
-    { id: "TK08", name: "Bà Rịa - Vũng Tàu" },
-    { id: "TK09", name: "Đắk Lắk" },
-    { id: "TK10", name: "Bình Định" },
-    { id: "TK11", name: "Khánh Hòa" },
-    { id: "TK12", name: "Hà Tĩnh" },
-    { id: "TK13", name: "Huế" },
-    { id: "TK14", name: "Bắc Ninh" },
-    { id: "TK15", name: "Thái Nguyên" },
-    { id: "TK16", name: "Hải Dương" },
-    { id: "TK17", name: "Ninh Thuận" },
-    { id: "TK18", name: "Vĩnh Phúc" },
-    { id: "TK19", name: "Ninh Bình" },
-    { id: "TK20", name: "Thái Bình" },
-    { id: "TK21", name: "Quảng Ngãi" },
-  ];
-  /*dexieDB.TKsystem.bulkAdd(tkdata)
-  .then(() => {
-    console.log('Dữ liệu đã được thêm thành công');
-  })
-  .catch(error => {
-    console.error('Lỗi khi thêm dữ liệu:', error);
-  });*/
-  dexieDB.TKsystem.toArray()
-    .then((records) => {
-      console.log("Dữ liệu trong bảng :", records);
-    })
-    .catch((error) => {
-      console.error("Lỗi khi lấy dữ liệu:", error);
-    });
-};

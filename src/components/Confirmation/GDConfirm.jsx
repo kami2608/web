@@ -39,12 +39,12 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import Pagination from '@mui/material/Pagination';
 import ShipmentDetailsDialog from "../Dialog/ShipmentDetailsDialog";
 import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
-//import ShipmentTable from "../Table/ShipmentTable";
+import ShipmentTable from "../Table/ShipmentTable";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
-import { dexieDB, updateDataFromFireStoreAndDexie } from "../../database/cache";
-// import { useShipments } from "../Shipments/useShipments";
-import { AutocompleteInput, changeDateForm } from "../utils";
+import { dexieDB, updateDataFromFireStoreAndDexie, updateDataFromDexieTable, addDataToFireStoreAndDexie, addDataToDexieTable, syncDexieToFirestore } from "../../database/cache";
+import { AutocompleteInput, changeDateForm, formatDeliveryTime } from "../utils";
+import moment from "moment";
 
 function createData({
   id,
@@ -55,6 +55,10 @@ function createData({
   startTKpoint,
   endTKpoint,
   endGDpoint,
+  startGDpointName,
+  startTKpointName,
+  endTKpointName,
+  endGDpointName,
   status
 }) {
   return {
@@ -66,7 +70,11 @@ function createData({
     startTKpoint,
     endTKpoint,
     endGDpoint,
-    status
+    startGDpointName,
+    startTKpointName,
+    endTKpointName,
+    endGDpointName,
+    status,
   };
 }
 
@@ -74,31 +82,55 @@ const GDConfirm = () => {
   const dataShipments = useLiveQuery(() =>
     dexieDB
       .table("shipment")
-      .filter((item) => item.startTKpoint === 'TK01')
+      .filter((item) => item.startTKpoint === 'TK01' && item.startGDpoint !== 0)
       .toArray()
   );
+
   const orderHistories = useLiveQuery(() =>
     dexieDB
       .table("orderHistory")
       .filter((item) => item.historyID.endsWith('2'))
       .toArray()
   );
+
   const GDSystem = useLiveQuery(() =>
     dexieDB
       .table("GDsystem")
       .toArray());
-
+  const GDVacc = useLiveQuery(() =>
+    dexieDB
+      .table("GDVacc")
+      .toArray());
+  const dataOrders = useLiveQuery(() =>
+    dexieDB
+      .table("orders")
+      .filter((item) => item.startTKpoint === 'TK01' && item.startGDpoint !== 0)
+      .toArray()
+  )
+  console.log("sipmnet", dataShipments);
   const [shipments, setShipments] = useState([]);
   useEffect(() => {
-    if (dataShipments) {
-      setShipments(dataShipments.map(createData));
+    if (GDSystem && dataShipments) {
+      // Tạo map từ GDSystem
+      const GDSystemNameMap = new Map(
+        GDSystem.map(item => [item.id, item.name])
+      );
+      // Cập nhật shipments dựa trên map
+      const updatedShipments = dataShipments.map(shipment => {
+        const _startGDpointName = GDSystemNameMap.get(shipment.startGDpoint);
+        // console.log("startGPO", _startGDpointName, " ", shipment.startGDpoint);
+        return ({
+          ...createData(shipment),
+          startGDpointName: _startGDpointName,
+        });
+      });
+      setShipments(updatedShipments);
     }
-  }, [dataShipments]);
+  }, [GDSystem, dataShipments]);
 
   const [openDetailsShipment, setOpenDetailsShipment] = useState(false);
   const [selectedShipments, setSelectedShipments] = useState([]);
-  const [selectedShipmentDetails, setSelectedShipmentDetails] = useState(null);
-  const [selectedGDPoint, setSelectedGDPoint] =
+  const [selectedGDpoint, setSelectedGDpoint] =
     useState(null);
   const [selectedShipmentID, setSelectedShipmentID] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -107,14 +139,22 @@ const GDConfirm = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [currentShipment, setCurrentShipment] = useState(null);
 
-  const clickDetailsShipment = (shipmentDetails) => {
-    setSelectedShipmentDetails(shipmentDetails);
-    setOpenDetailsShipment(true);
+  const clickDetailsShipment = (shipment) => {
+    if (shipment) {
+      setCurrentShipment(shipment);
+      setOpenDetailsShipment(true);
+    } else {
+      console.log('Attempted to open details for a null shipment');
+    }
   };
+
   const closeDetailsShipment = () => {
     setOpenDetailsShipment(false);
+    setCurrentShipment(null); // Xóa currentShipment khi đóng Dialog
   };
+
   const clickDetailOrder = (order) => {
     setSelectedOrderDetails(order);
     setOpenDetailsOrder(true);
@@ -134,38 +174,44 @@ const GDConfirm = () => {
   };
 
   const handleConfirmShipment = async () => {
-    // Cập nhật state
-    const updatedShipments = shipments.map((shipment) =>
-      selectedShipments.includes(shipment.id) && shipment.status === "chưa xác nhận"
-        ? { ...shipment, status: "đã xác nhận" }
-        : shipment
+    // 1. Update shipment status
+    for (const shipment of selectedShipments) {
+      const updatedShipmentData = { status: "đã xác nhận" };
+    //  await updateDataFromFireStoreAndDexie("shipment", shipment.id, updatedShipmentData);
+    }
+  
+    // 2. Update order histories
+    const updateHistoriesPromises = selectedShipments.flatMap(shipment => {
+      if (!shipment.ordersList) return;
+      return shipment.ordersList.split(",").map(orderId => {
+        const historyId = `${orderId}_2`; // startGDpoint -> startTKpoint
+        const updatedHistoryData = {
+          orderStatus: "Đã xác nhận",
+        };
+       // return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
+      });
+    });
+  
+    // 3. Wait for all updates to complete
+   await Promise.all(updateHistoriesPromises);
+    console.log("Đã cập nhật DexieDB thành công!");
+  
+    // 4. Sync updated data to Firestore
+   syncDexieToFirestore("shipment", "shipment", ["status"]);
+   syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
+  
+    // 5. Update local state
+    const updatedShipments = shipments.map(shipment =>
+      selectedShipments.includes(shipment.id) ? { ...shipment, status: "đã xác nhận" } : shipment
     );
     setShipments(updatedShipments);
-    // Cập nhật dexieDB của shipment
-    const shipmentsToUpdate = updatedShipments.filter(shipment =>
-      selectedShipments.includes(shipment.id)
-    );
-    for (const shipment of shipmentsToUpdate) {
-      await dexieDB.table("shipment").update(shipment.id, { status: "đã xác nhận" });
-    }
-    // Cập nhật dexieDB của orderHistory
-    const orderIDs = updatedShipments.details.split(",");
-    for (const orderID of orderIDs) {
-      const historyID = `${orderID}_2`;
-      await orderHistories.update(historyID,
-        { Description: "Chuyển đến điểm tập kết nhận" },
-        { currentLocation: "Hà Nội" },
-        { orderStatus: "Đã xác nhận" }
-      );
-    }
-
-    Promise.all(orderHistories).then(() => {
-      console.log("Đã cập nhật DexieDB thành công!");
-    });
+  
+    // 6. Clear selected shipments
     setSelectedShipments([]);
   };
+  
 
-  const GDPoints = [
+  const GDpoints = [
     { label: "Ba Đình" },
     { label: "Biên Hòa" },
     { label: "Bình Thạnh" },
@@ -231,7 +277,10 @@ const GDConfirm = () => {
     { label: "Trà Bồng" },
   ];
   const shipmentIDList = shipments.map(shipment => ({ label: shipment.id }));
-  const status = shipments.map(shipment => ({ label: shipment.status }));
+  const status = [
+    { label: "đã xác nhận"},
+    { label: "chưa xác nhận"},
+  ];
   const year = [
     { label: 2023 },
     { label: 2022 },
@@ -252,8 +301,8 @@ const GDConfirm = () => {
   const handleShipmentIDChange = (event, value) => {
     setSelectedShipmentID(value);
   }
-  const handleGDPointChange = (event, value) => {
-    setSelectedGDPoint(value);
+  const handleGDpointChange = (event, value) => {
+    setSelectedGDpoint(value);
   };
   const handleDateChange = (event, value) => {
     setSelectedDate(value);
@@ -268,18 +317,14 @@ const GDConfirm = () => {
     setSelectedStatus(value);
   };
 
-  const formatDeliveryTime = (time) => {
-    const [day, month, year] = time.split('/');
-    return new Date(`${year}-${month}-${day}`);
-  };
 
   const filteredShipments = shipments.filter((shipment) => {
     const formattedDeliveryTime = formatDeliveryTime(shipment.date);
     return (
       (!selectedShipmentID ||
         shipment.id === selectedShipmentID.label) &&
-      (!selectedGDPoint ||
-        shipment.startGDPoint === selectedGDPoint.label) &&
+      (!selectedGDpoint ||
+        ((shipment.startGDpoint) && shipment.startGDpointName === selectedGDpoint.label)) &&
       (!selectedDate || formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth || formattedDeliveryTime.getMonth() + 1 === parseInt(selectedMonth.label)) &&
       (!selectedYear || formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
@@ -311,14 +356,13 @@ const GDConfirm = () => {
       return 0;
     });
   };
-
   return (
     <Container>
       <Box sx={{ paddingTop: '20px' }}>
         <Grid container spacing={2} sx={{ marginBottom: '10px' }}>
           {[
             { label: "Đơn chuyển hàng", options: shipmentIDList, value: selectedShipmentID, onChange: handleShipmentIDChange },
-            { label: "Điểm giao dịch", options: GDPoints, value: selectedGDPoint, onChange: handleGDPointChange },
+            { label: "Điểm giao dịch", options: GDpoints, value: selectedGDpoint, onChange: handleGDpointChange },
             { label: "Ngày", options: date, value: selectedDate, onChange: handleDateChange },
             { label: "Tháng", options: month, value: selectedMonth, onChange: handleMonthChange },
             { label: "Năm", options: year, value: selectedYear, onChange: handleYearChange },
@@ -370,9 +414,9 @@ const GDConfirm = () => {
             <TableCell>
               <strong>Từ điểm giao dịch</strong>
               <TableSortLabel
-                active={sortConfig.key === 'startGDPoint'}
-                direction={sortConfig.key === 'startGDPoint' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('startGDPoint')}
+                active={sortConfig.key === 'startGDpoint'}
+                direction={sortConfig.key === 'startGDpoint' ? sortConfig.direction : 'asc'}
+                onClick={() => sortData('startGDpoint')}
               />
             </TableCell>
             <TableCell>
@@ -409,9 +453,9 @@ const GDConfirm = () => {
                   />
                 </TableCell>
                 <TableCell>{shipment.id}</TableCell>
-                <TableCell>{shipment.date}</TableCell>
+                <TableCell>{moment(shipment.date, "DD/MM/YYYY").add(1, "days").format("DD/MM/YYYY")}</TableCell>
                 <TableCell>{shipment.counts}</TableCell>
-                <TableCell>{shipment.startGDpoint}</TableCell>
+                <TableCell>{shipment.startGDpointName}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => clickDetailsShipment(shipment)} style={{ color: '#4CAF50' }}>
                     <VisibilityIcon />
@@ -438,14 +482,18 @@ const GDConfirm = () => {
       <ShipmentDetailsDialog
         open={openDetailsShipment}
         onClose={closeDetailsShipment}
-        shipmentDetails={selectedShipments}
+        shipment={currentShipment}
+        orders={dataOrders}
+        staff={GDVacc}
         clickDetailOrder={clickDetailOrder}
       />
+
       <OrderDetailsDialog
         open={openDetailsOrder}
         onClose={closeDetailsOrder}
         selectedOrderDetails={selectedOrderDetails}
       />
+
     </Container>
   );
 };

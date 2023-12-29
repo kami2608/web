@@ -17,14 +17,14 @@ import {
   Paper,
   Typography,
   Snackbar,
-  Pagination
+  Pagination,
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ShipmentDialog from "../Dialog/ShipmentDialog";
 import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AutocompleteInput, changeDateForm, changeDateForm2 } from "../utils";
+import { AutocompleteInput, changeDateForm, changeDateForm2, formatDeliveryTime } from "../utils";
 import { dexieDB, updateDataFromFireStoreAndDexie } from "../../database/cache";
 
 function createDataOrder({
@@ -43,6 +43,10 @@ function createDataOrder({
   startTKpoint,
   endTKpoint,
   endGDpoint,
+  startGDpointName,
+  startTKpointName,
+  endTKpointName,
+  endGDpointName,
   status,
 }) {
   return {
@@ -61,60 +65,69 @@ function createDataOrder({
     startTKpoint,
     endTKpoint,
     endGDpoint,
+    startGDpointName,
+    startTKpointName,
+    endTKpointName,
+    endGDpointName,
     status,
   };
 }
-
 const GDShipment = () => {
   const orderHistories = useLiveQuery(() =>
-  dexieDB
-    .table("orderHistory")
-    .filter((item) => item.historyID.endsWith('4'))
-    .toArray()
-);
-const TKSystem = useLiveQuery(() =>
-  dexieDB
-    .table("TKsystem")
-    .toArray()
-);
-const dataOrders = useLiveQuery(() =>
-  dexieDB
-    .table("orders")
-    .filter((item) => item.endTKpoint === 'TK01')
-    .toArray()
-);
-const [orders, setOrders] = useState([]);
-useEffect(() => {
-  if (orderHistories && dataOrders) {
-    // Tạo map từ orderHistory
-    const orderHistoryDateMap = new Map(
-      orderHistories.map(item => [item.orderID, item.date])
-    );
-    // Tạo map từ TKSystem
-    const TKSystemNameMap = new Map(
-      TKSystem.map(item => [item.id, item.Name])
-    );
-    // Cập nhật orders dựa trên dataOrders và map
-    const updatedOrders = dataOrders.map(order => {
-      const orderHistoryDate = orderHistoryDateMap.get(order.id);
-      const endGDPointName = TKSystemNameMap.get(order.id);
-      return {
-        ...createDataOrder(order),
-        endTKpoint: endGDPointName,
-        date: changeDateForm(orderHistoryDate)
-      };
-    });
-    setOrders(updatedOrders);
-  }
-}, [orderHistories, TKSystem, dataOrders]);
+    dexieDB
+      .table("orderHistory")
+      .filter((item) => item.historyID.endsWith("4")) // Lọc order đi từ endTKpoint -> endGDpoint
+      .toArray()
+  );
+  const GDSystem = useLiveQuery(() => dexieDB.table("GDsystem").toArray());
+  const NVTKacc = useLiveQuery(() => dexieDB.table("NVTKacc").toArray());
+
+  const dataShipments = useLiveQuery(() =>
+    dexieDB
+      .table("shipment")
+      .filter((item) => item.endTKpoint === "TK01" && item.endGDpoint !== 0) // endTKpoint -> endGDpoint
+      .toArray()
+  );
+  const dataOrders = useLiveQuery(() =>
+    dexieDB
+      .table("orders")
+      .filter((item) => item.endTKpoint === "TK01" && item.endGDpoint !== 0) // endTKpoint -> endGDpoint
+      .toArray()
+  );
+  console.log("orderhistory", dataShipments);
+
+  const [orders, setOrders] = useState([]);
+  useEffect(() => {
+    if (orderHistories && dataOrders && GDSystem) {
+      // Tạo map từ orderHistory
+      const orderHistoryDateMap = new Map(
+        orderHistories.map((item) => [item.orderID, item.date])
+      );
+      // Tạo map từ GDSystem
+      const GDSystemNameMap = new Map(
+        GDSystem.map((item) => [item.id, item.name])
+      );
+      // Cập nhật orders dựa trên dataOrders và map
+      const updatedOrders = dataOrders.map((order) => {
+        const orderHistoryDate = orderHistoryDateMap.get(order.id);
+        const _endGDpointName = GDSystemNameMap.get(order.endGDpoint);
+        console.log("endGD", _endGDpointName, " ", order.endGDpoint);
+        return {
+          ...createDataOrder(order),
+          endGDpointName: _endGDpointName,
+          date: changeDateForm(orderHistoryDate),
+        };
+      });
+      setOrders(updatedOrders);
+    }
+  }, [orderHistories, dataOrders, GDSystem]);
 
   const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [openCreateShipment, setOpenCreateShipment] = useState(false);
   const [openDetailsOrder, setOpenDetailsOrder] = useState(false);
   const [selectedOrderID, setSelectedOrderID] = useState(null);
-  const [selectedGDPoint, setSelectedGDPoint] =
-    useState(null);
+  const [selectedGDpoint, setSelectedGDpoint] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -124,7 +137,7 @@ useEffect(() => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const clickDetailOrder = (order) => {
-    setSelectedOrderDetails(order.details);
+    setSelectedOrderDetails(order);
     setOpenDetailsOrder(true);
   };
   const closeDetailsOrder = () => {
@@ -134,11 +147,11 @@ useEffect(() => {
     setOpenCreateShipment(true);
   };
 
-  const handleConfirmShipment = () => {
-    setOrders(prevOrders => {
-      return prevOrders.map(order => ({
+  const handleConfirmShipment = async (shipmentID, shipmentDate) => {
+    setOrders((prevOrders) => {
+      return prevOrders.map((order) => ({
         ...order,
-        status: selectedOrders.includes(order.id) ? "Đã tạo đơn" : order.status
+        status: selectedOrders.includes(order.id) ? "Đã tạo đơn" : order.status,
       }));
     });
     setSelectedOrders([]);
@@ -147,7 +160,7 @@ useEffect(() => {
   };
 
   const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') {
+    if (reason === "clickaway") {
       return;
     }
     setOpenSnackbar(false);
@@ -158,8 +171,8 @@ useEffect(() => {
     setSelectedOrders([]);
   };
 
-  const orderIDs = orders.map(order => ({ label: order.id }));
-  const GDPoints = [
+  const orderIDs = orders.map((order) => ({ label: order.id }));
+  const GDpoints = [
     { label: "Ba Đình" },
     { label: "Biên Hòa" },
     { label: "Bình Thạnh" },
@@ -242,8 +255,8 @@ useEffect(() => {
   const month = createArray(1, 12);
   const date = createArray(1, 31);
 
-  const handleGDPointChange = (event, value) => {
-    setSelectedGDPoint(value);
+  const handleGDpointChange = (event, value) => {
+    setSelectedGDpoint(value);
   };
   const handleDateChange = (event, value) => {
     setSelectedDate(value);
@@ -268,31 +281,33 @@ useEffect(() => {
     setSelectedOrders(newSelectedOrders);
   };
 
-  const formatDeliveryTime = (time) => {
-    const [date, month, year] = time.split('/');
-    return new Date(`${year}-${month}-${date}`);
-  };
-
   const filteredOrders = orders.filter((order) => {
     const formattedDeliveryTime = formatDeliveryTime(order.date);
     return (
       (!selectedOrderID || order.id === selectedOrderID.label) &&
-      (!selectedGDPoint ||
-        order.GDPoint === selectedGDPoint.label) &&
-      (!selectedDate || formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
-      (!selectedMonth || formattedDeliveryTime.getMonth() + 1 === parseInt(selectedMonth.label)) &&
-      (!selectedYear || formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
+      (!selectedGDpoint || order.GDpointName === selectedGDpoint.label) &&
+      (!selectedDate ||
+        formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
+      (!selectedMonth ||
+        formattedDeliveryTime.getMonth() + 1 ===
+        parseInt(selectedMonth.label)) &&
+      (!selectedYear ||
+        formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
       (!selectedStatus ||
-        (order.confirmed ? "Đã tạo đơn" : "Chưa tạo đơn") === selectedStatus.label)
+        (order.status ? "Đã tạo đơn" : "Chưa tạo đơn") ===
+        selectedStatus.label)
     );
   });
 
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: "ascending",
+  });
   // Sorting function
   const sortData = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'des';
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "des";
     }
     setSortConfig({ key, direction });
   };
@@ -300,10 +315,10 @@ useEffect(() => {
     if (!sortConfig.key) return data;
     return [...data].sort((a, b) => {
       if (a[sortConfig.key] < b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? -1 : 1;
+        return sortConfig.direction === "asc" ? -1 : 1;
       }
       if (a[sortConfig.key] > b[sortConfig.key]) {
-        return sortConfig.direction === 'asc' ? 1 : -1;
+        return sortConfig.direction === "asc" ? 1 : -1;
       }
       return 0;
     });
@@ -311,15 +326,46 @@ useEffect(() => {
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ paddingTop: '20px' }}>
-        <Grid container spacing={2} sx={{ marginBottom: '10px' }}>
+      <Box sx={{ paddingTop: "20px" }}>
+        <Grid container spacing={2} sx={{ marginBottom: "10px" }}>
           {[
-            { label: "Mã đơn hàng", options: orderIDs, value: selectedOrderID, onChange: handleOrderIDChange },
-            { label: "Điểm giao dịch", options: GDPoints, value: selectedGDPoint, onChange: handleGDPointChange },
-            { label: "Ngày", options: date, value: selectedDate, onChange: handleDateChange },
-            { label: "Tháng", options: month, value: selectedMonth, onChange: handleMonthChange },
-            { label: "Năm", options: year, value: selectedYear, onChange: handleYearChange },
-            { label: "Trạng thái", options: status, value: selectedStatus, onChange: handleStatusChange, minWidth: '200px' },
+            {
+              label: "Mã đơn hàng",
+              options: orderIDs,
+              value: selectedOrderID,
+              onChange: handleOrderIDChange,
+            },
+            {
+              label: "Điểm giao dịch",
+              options: GDpoints,
+              value: selectedGDpoint,
+              onChange: handleGDpointChange,
+            },
+            {
+              label: "Ngày",
+              options: date,
+              value: selectedDate,
+              onChange: handleDateChange,
+            },
+            {
+              label: "Tháng",
+              options: month,
+              value: selectedMonth,
+              onChange: handleMonthChange,
+            },
+            {
+              label: "Năm",
+              options: year,
+              value: selectedYear,
+              onChange: handleYearChange,
+            },
+            {
+              label: "Trạng thái",
+              options: status,
+              value: selectedStatus,
+              onChange: handleStatusChange,
+              minWidth: "200px",
+            },
           ].map((inputProps, index) => (
             <Grid item xs={12} sm={6} md={2} lg={2} key={index}>
               <AutocompleteInput {...inputProps} />
@@ -330,63 +376,59 @@ useEffect(() => {
 
       <Table>
         <TableHead>
-          <TableRow style={{ backgroundColor: '#f5f5f5' }}>
+          <TableRow style={{ backgroundColor: "#f5f5f5" }}>
             <TableCell>
               <Checkbox
                 checked={selectedOrders.length === orders.length}
                 onChange={() => {
                   const allSelected = selectedOrders.length === orders.length;
-                  setSelectedOrders(allSelected ? [] : orders.map((order) => order.id));
+                  setSelectedOrders(
+                    allSelected ? [] : orders.map((order) => order.id)
+                  );
                 }}
               />
             </TableCell>
             <TableCell>
               <strong>Mã đơn hàng</strong>
               <TableSortLabel
-                active={sortConfig.key === 'id'}
-                direction={sortConfig.key === 'id' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('id')}
+                active={sortConfig.key === "id"}
+                direction={
+                  sortConfig.key === "id" ? sortConfig.direction : "asc"
+                }
+                onClick={() => sortData("id")}
               />
             </TableCell>
-            {/* <TableCell>
-              <strong>Loại hàng</strong>
-              <TableSortLabel
-                active={sortConfig.key === 'type'}
-                direction={sortConfig.key === 'type' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('type')}
-              />
-            </TableCell> */}
-            {/* <TableCell>
-              <strong>Cân nặng</strong>
-              <TableSortLabel
-                active={sortConfig.key === 'weight'}
-                direction={sortConfig.key === 'weight' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('weight')}
-              />
-            </TableCell> */}
             <TableCell>
               <strong>Thời gian</strong>
               <TableSortLabel
-                active={sortConfig.key === 'date'}
-                direction={sortConfig.key === 'date' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('date')}
+                active={sortConfig.key === "date"}
+                direction={
+                  sortConfig.key === "date" ? sortConfig.direction : "asc"
+                }
+                onClick={() => sortData("date")}
               />
             </TableCell>
             <TableCell>
               <strong>Đến điểm giao dịch</strong>
               <TableSortLabel
-                active={sortConfig.key === 'endGDpoint'}
-                direction={sortConfig.key === 'endGDpoint' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('endGDpoint')}
+                active={sortConfig.key === "endGDpointName"}
+                direction={
+                  sortConfig.key === "endGDpointName" ? sortConfig.direction : "asc"
+                }
+                onClick={() => sortData("endGDpointName")}
               />
             </TableCell>
-            <TableCell><strong>Chi tiết</strong></TableCell>
+            <TableCell>
+              <strong>Chi tiết</strong>
+            </TableCell>
             <TableCell>
               <strong>Trạng thái</strong>
               <TableSortLabel
-                active={sortConfig.key === 'status'}
-                direction={sortConfig.key === 'status' ? sortConfig.direction : 'asc'}
-                onClick={() => sortData('status')}
+                active={sortConfig.key === "status"}
+                direction={
+                  sortConfig.key === "status" ? sortConfig.direction : "asc"
+                }
+                onClick={() => sortData("status")}
               />
             </TableCell>
           </TableRow>
@@ -398,9 +440,10 @@ useEffect(() => {
               <TableRow
                 key={order.id}
                 sx={{
-                  backgroundColor: order.status === "Đã tạo đơn" ? "#e8f5e9" : "inherit",
-                  '&:hover': {
-                    backgroundColor: '#f5f5f5',
+                  backgroundColor:
+                    order.status === "Đã tạo đơn" ? "#e8f5e9" : "inherit",
+                  "&:hover": {
+                    backgroundColor: "#f5f5f5",
                   },
                 }}
               >
@@ -409,16 +452,15 @@ useEffect(() => {
                     checked={selectedOrders.includes(order.id)}
                     onChange={() => handleCheckboxChange(order.id)}
                   />
-
                 </TableCell>
-
                 <TableCell>{order.id}</TableCell>
-                {/* <TableCell>{order.type}</TableCell>
-              <TableCell>{order.weight}</TableCell> */}
                 <TableCell>{order.date}</TableCell>
-                <TableCell>{order.endGDpoint}</TableCell>
+                <TableCell>{order.endGDpointName}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => clickDetailOrder(order)} style={{ color: '#4CAF50' }}>
+                  <IconButton
+                    onClick={() => clickDetailOrder(order)}
+                    style={{ color: "#4CAF50" }}
+                  >
                     <VisibilityIcon />
                   </IconButton>
                 </TableCell>
@@ -443,10 +485,11 @@ useEffect(() => {
       <ShipmentDialog
         open={openCreateShipment}
         onClose={closeCreateShipment}
-        onConfirm={handleConfirmShipment}
-        selectedOrders={selectedOrders}
-        orders={orders}
+        onConfirm={(shipmentID, shipmentDate) => handleConfirmShipment(shipmentID, shipmentDate)}
+        orders={orders.filter(order => selectedOrders.includes(order.id))}
+        NVTKacc={NVTKacc}
       />
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}
@@ -457,12 +500,11 @@ useEffect(() => {
       <OrderDetailsDialog
         open={openDetailsOrder}
         onClose={closeDetailsOrder}
-        selectedOrderDetails={selectedOrderDetails}
+        order={selectedOrderDetails}
       />
-
+      
     </Container>
-
   );
-}
+};
 
 export default GDShipment;

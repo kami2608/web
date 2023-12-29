@@ -12,7 +12,7 @@ import {
 
 import { useLiveQuery } from "dexie-react-hooks";
 
-const dexieDB = new Dexie("cachedUser34");
+const dexieDB = new Dexie("cachedUser38");
 dexieDB.version(1).stores({
   GDsystem: "id",
   TKsystem: "id",
@@ -24,6 +24,24 @@ dexieDB.version(1).stores({
   orders: "id",
   shipment: "id",
 });
+
+
+function syncDexieToFirestore(tableName, collectionName, fieldsToSync) {
+  dexieDB[tableName].toArray().then((data) => {
+    data.forEach(async (record) => {
+      if (record.id) {
+        const { id, ...dataFields } = record;
+        const updateObject = {};
+        fieldsToSync.forEach((field) => {
+          updateObject[field] = dataFields[field];
+        });
+
+        const docRef = doc(fireDB, collectionName, id.toString());
+        await setDoc(docRef, updateObject);
+      }
+    });
+  });
+}
 
 async function deleteDataFromFireStoreAndDexie(collectionName, id) {
   try {
@@ -165,6 +183,7 @@ export {
   updateDataFromDexieTable,
   addDataToFireStoreAndDexie,
   addDataToDexieTable,
+  syncDexieToFirestore,
 };
 
 // Mới chỉ xử lí phần lấy id, chưa xử lí phần load profile

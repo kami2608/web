@@ -7,12 +7,6 @@ import {
 import { getFirestore } from "firebase/firestore";
 
 const app = initializeApp({
-  // apiKey: "AIzaSyDI4OBEa7Zh7w0mo9G-dyYf0cjjSQx_uwI",
-  // authDomain: "magic-post-21f3f.firebaseapp.com",
-  // projectId: "magic-post-21f3f",
-  // storageBucket: "magic-post-21f3f.appspot.com",
-  // messagingSenderId: "968165012418",
-  // appId: "1:968165012418:web:d60163f26d79ac342cdc5b",
 
 
   // apiKey: "AIzaSyAF3bIMKaPnfUULyQnEtQbgeBc7-XfZv80",
@@ -29,12 +23,12 @@ const app = initializeApp({
   // messagingSenderId: "746792341563",
   // appId: "1:746792341563:web:f3f3ede47e51bfa191cc1e"
 
-  apiKey: "AIzaSyBrUUxrvEmUl5KJ1DCoFxFDeuYVfKTIsww",
-  authDomain: "magic-post1.firebaseapp.com",
-  projectId: "magic-post1",
-  storageBucket: "magic-post1.appspot.com",
-  messagingSenderId: "318952366608",
-  appId: "1:318952366608:web:94a5c380dcac947e01a095"
+  // apiKey: "AIzaSyBrUUxrvEmUl5KJ1DCoFxFDeuYVfKTIsww",
+  // authDomain: "magic-post1.firebaseapp.com",
+  // projectId: "magic-post1",
+  // storageBucket: "magic-post1.appspot.com",
+  // messagingSenderId: "318952366608",
+  // appId: "1:318952366608:web:94a5c380dcac947e01a095"
 
   // apiKey: "AIzaSyB4iOWmclb_p_YVm8QdUIO9o6RECiXYsvo",
   // authDomain: "magicpost-224ab.firebaseapp.com",
@@ -43,6 +37,20 @@ const app = initializeApp({
   // messagingSenderId: "439957681033",
   // appId: "1:439957681033:web:e686930222e6e3e9d0e758",
   // measurementId: "G-9VLC22ZD47"
+
+  // apiKey: "AIzaSyDI4OBEa7Zh7w0mo9G-dyYf0cjjSQx_uwI",
+  // authDomain: "magic-post-21f3f.firebaseapp.com",
+  // projectId: "magic-post-21f3f",
+  // storageBucket: "magic-post-21f3f.appspot.com",
+  // messagingSenderId: "968165012418",
+  // appId: "1:968165012418:web:d60163f26d79ac342cdc5b"
+
+  apiKey: "AIzaSyA4wm1g4e8b9kpv_x1jayoBuRP-xNvI84c",
+  authDomain: "magic-post-vip.firebaseapp.com",
+  projectId: "magic-post-vip",
+  storageBucket: "magic-post-vip.appspot.com",
+  messagingSenderId: "709874716113",
+  appId: "1:709874716113:web:89a954043a6199222da4f0"
 });
 
 const fireDB = getFirestore(app);

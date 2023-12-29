@@ -39,12 +39,11 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import Pagination from '@mui/material/Pagination';
 import ShipmentDetailsDialog from "../Dialog/ShipmentDetailsDialog";
 import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
-//import ShipmentTable from "../Table/ShipmentTable";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
-import { dexieDB, updateDataFromFireStoreAndDexie } from "../../database/cache";
-// import { useShipments } from "../Shipments/useShipments";
-import { AutocompleteInput, changeDateForm } from "../utils";
+import { dexieDB, updateDataFromFireStoreAndDexie, updateDataFromDexieTable, addDataToFireStoreAndDexie, addDataToDexieTable, syncDexieToFirestore } from "../../database/cache";
+import { AutocompleteInput, changeDateForm, formatDeliveryTime } from "../utils";
+import { or } from "firebase/firestore";
 
 function createData({
   id,
@@ -55,6 +54,10 @@ function createData({
   startTKpoint,
   endTKpoint,
   endGDpoint,
+  startGDpointName,
+  startTKpointName,
+  endTKpointName,
+  endGDpointName,
   status
 }) {
   return {
@@ -66,7 +69,11 @@ function createData({
     startTKpoint,
     endTKpoint,
     endGDpoint,
-    status
+    startGDpointName,
+    startTKpointName,
+    endTKpointName,
+    endGDpointName,
+    status,
   };
 }
 
@@ -74,31 +81,55 @@ const TKConfirm = () => {
   const dataShipments = useLiveQuery(() =>
     dexieDB
       .table("shipment")
-      .filter((item) => item.endTKpoint === 'TK01')
+      .filter((item) => item.endTKpoint === 'TK01' && item.startTKpoint !== 0 && item.status !== 0) // lọc shipment từ startTKpoint -> endTKpoint và tồn tại
       .toArray()
   );
+  // console.log("shipment", dataShipments);
   const orderHistories = useLiveQuery(() =>
     dexieDB
       .table("orderHistory")
       .filter((item) => item.historyID.endsWith('3'))
       .toArray()
   );
-  const GDSystem = useLiveQuery(() =>
+  const dataOrders = useLiveQuery(() =>
     dexieDB
-      .table("GDsystem")
+      .table("orders")
+      .filter((item) => item.endTKpoint === 'TK01' && item.startTKpoint != 0)
+      .toArray()
+  )
+  const TKSystem = useLiveQuery(() =>
+    dexieDB
+      .table("TKsystem")
       .toArray());
+  console.log("tsys", TKSystem);
+  const NVTKacc = useLiveQuery(() =>
+    dexieDB
+      .table("NVTKacc")
+      .toArray())
 
   const [shipments, setShipments] = useState([]);
   useEffect(() => {
-    if (dataShipments) {
-      setShipments(dataShipments.map(createData));
+    if (TKSystem && dataShipments) {
+      // Tạo map từ TKSystem
+      const TKSystemNameMap = new Map(
+        TKSystem.map(item => [item.id, item.name])
+      );
+      // Cập nhật shipments dựa trên map
+      const updatedShipments = dataShipments.map(shipment => {
+        const _startTKpointName = TKSystemNameMap.get(shipment.startTKpoint);
+        return {
+          ...createData(shipment),
+          startTKpointName: _startTKpointName,
+        };
+      });
+      setShipments(updatedShipments);
     }
-  }, [dataShipments]);
+  }, [TKSystem, dataShipments]);
 
   const [openDetailsShipment, setOpenDetailsShipment] = useState(false);
   const [selectedShipments, setSelectedShipments] = useState([]);
   const [selectedShipmentDetails, setSelectedShipmentDetails] = useState(null);
-  const [selectedTKPoint, setSelectedTKPoint] =
+  const [selectedTKpoint, setSelectedTKpoint] =
     useState(null);
   const [selectedShipmentID, setSelectedShipmentID] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -107,14 +138,22 @@ const TKConfirm = () => {
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [currentShipment, setCurrentShipment] = useState(null);
 
-  const clickDetailsShipment = (shipmentDetails) => {
-    setSelectedShipmentDetails(shipmentDetails);
-    setOpenDetailsShipment(true);
+  const clickDetailsShipment = (shipment) => {
+    if (shipment) {
+      setCurrentShipment(shipment);
+      setOpenDetailsShipment(true);
+    } else {
+      console.log('Attempted to open details for a null shipment');
+    }
   };
+
   const closeDetailsShipment = () => {
     setOpenDetailsShipment(false);
+    setCurrentShipment(null); // Xóa currentShipment khi đóng Dialog
   };
+
   const clickDetailOrder = (order) => {
     setSelectedOrderDetails(order);
     setOpenDetailsOrder(true);
@@ -134,38 +173,44 @@ const TKConfirm = () => {
   };
 
   const handleConfirmShipment = async () => {
-    // Cập nhật state
-    const updatedShipments = shipments.map((shipment) =>
-      selectedShipments.includes(shipment.id) && shipment.status === "chưa xác nhận"
-        ? { ...shipment, status: "đã xác nhận" }
-        : shipment
-    );
-    setShipments(updatedShipments);
-    // Cập nhật dexieDB của shipment
-    const shipmentsToUpdate = updatedShipments.filter(shipment =>
-      selectedShipments.includes(shipment.id)
-    );
-    for (const shipment of shipmentsToUpdate) {
-      await dexieDB.table("shipment").update(shipment.id, { status: "đã xác nhận" });
-    }
-    // Cập nhật dexieDB của orderHistory
-    const orderIDs = updatedShipments.details.split(",");
-    for (const orderID of orderIDs) {
-      const historyID = `${orderID}_2`;
-      await orderHistories.update(historyID,
-        { Description: "Chuyển đến điểm tập kết nhận" },
-        { currentLocation: "Hà Nội" },
-        { orderStatus: "Đã xác nhận" }
-      );
+    // 1. Update shipment status
+    for (const shipment of selectedShipments) {
+      const updatedShipmentData = { status: "đã xác nhận" };
+      await updateDataFromFireStoreAndDexie("shipment", shipment.id, updatedShipmentData);
     }
 
-    Promise.all(orderHistories).then(() => {
-      console.log("Đã cập nhật DexieDB thành công!");
+    // 2. Update order histories
+    const updateHistoriesPromises = selectedShipments.flatMap(shipment => {
+      if (!shipment.ordersList) return;
+      return shipment.ordersList.split(",").map(orderId => {
+        const historyId = `${orderId}_3`; // startTKpoint -> startGDpoint
+        const updatedHistoryData = {
+          orderStatus: "Đã xác nhận",
+        };
+        return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
+      });
     });
+
+    // 3. Wait for all updates to complete
+    await Promise.all(updateHistoriesPromises);
+    console.log("Đã cập nhật DexieDB thành công!");
+
+    // 4. Sync updated data to Firestore
+    syncDexieToFirestore("shipment", "shipments", ["status"]);
+    syncDexieToFirestore("orderHistory", "orderHistories", ["orderStatus"]);
+
+    // 5. Update local state
+    const updatedShipments = shipments.map(shipment =>
+      selectedShipments.includes(shipment.id) ? { ...shipment, status: "đã xác nhận" } : shipment
+    );
+    setShipments(updatedShipments);
+
+    // 6. Clear selected shipments
     setSelectedShipments([]);
   };
 
-  const TKPoints = [
+
+  const TKpoints = [
     { label: "Bà Rịa - Vũng Tàu" },
     { label: "Bắc Ninh" },
     { label: "Bình Định" },
@@ -189,7 +234,10 @@ const TKConfirm = () => {
     { label: "Thái Bình" }
   ];
   const shipmentIDList = shipments.map(shipment => ({ label: shipment.id }));
-  const status = shipments.map(shipment => ({ label: shipment.status }));
+  const status = [
+    { label: "đã xác nhận" },
+    { label: "chưa xác nhận" },
+  ];
   const year = [
     { label: 2023 },
     { label: 2022 },
@@ -210,8 +258,8 @@ const TKConfirm = () => {
   const handleShipmentIDChange = (event, value) => {
     setSelectedShipmentID(value);
   }
-  const handleTKPointChange = (event, value) => {
-    setSelectedTKPoint(value);
+  const handleTKpointChange = (event, value) => {
+    setSelectedTKpoint(value);
   };
   const handleDateChange = (event, value) => {
     setSelectedDate(value);
@@ -226,23 +274,18 @@ const TKConfirm = () => {
     setSelectedStatus(value);
   };
 
-  const formatDeliveryTime = (time) => {
-    const [day, month, year] = time.split('/');
-    return new Date(`${year}-${month}-${day}`);
-  };
-
   const filteredShipments = shipments.filter((shipment) => {
     const formattedDeliveryTime = formatDeliveryTime(shipment.date);
     return (
       (!selectedShipmentID ||
         shipment.id === selectedShipmentID.label) &&
-      (!selectedTKPoint ||
-        shipment.startTKPoint === selectedTKPoint.label) &&
+      (!selectedTKpoint ||
+        (shipment.startTKpoint && (shipment.startTKpointName === selectedTKpoint.label))) &&
       (!selectedDate || formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth || formattedDeliveryTime.getMonth() + 1 === parseInt(selectedMonth.label)) &&
       (!selectedYear || formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
       (!selectedStatus ||
-        (shipment.confirmed ? "đã xác nhận" : "chưa xác nhận") === selectedStatus.label)
+        (shipment.status ? "đã xác nhận" : "chưa xác nhận") === selectedStatus.label)
     );
   });
 
@@ -276,7 +319,7 @@ const TKConfirm = () => {
         <Grid container spacing={2} sx={{ marginBottom: '10px' }}>
           {[
             { label: "Đơn chuyển hàng", options: shipmentIDList, value: selectedShipmentID, onChange: handleShipmentIDChange },
-            { label: "Điểm giao dịch", options: TKPoints, value: selectedTKPoint, onChange: handleTKPointChange },
+            { label: "Điểm tập kết", options: TKpoints, value: selectedTKpoint, onChange: handleTKpointChange },
             { label: "Ngày", options: date, value: selectedDate, onChange: handleDateChange },
             { label: "Tháng", options: month, value: selectedMonth, onChange: handleMonthChange },
             { label: "Năm", options: year, value: selectedYear, onChange: handleYearChange },
@@ -369,7 +412,7 @@ const TKConfirm = () => {
                 <TableCell>{shipment.id}</TableCell>
                 <TableCell>{shipment.date}</TableCell>
                 <TableCell>{shipment.counts}</TableCell>
-                <TableCell>{shipment.startTKpoint}</TableCell>
+                <TableCell>{shipment.startTKpointName}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => clickDetailsShipment(shipment)} style={{ color: '#4CAF50' }}>
                     <VisibilityIcon />
@@ -396,9 +439,12 @@ const TKConfirm = () => {
       <ShipmentDetailsDialog
         open={openDetailsShipment}
         onClose={closeDetailsShipment}
-        shipmentDetails={selectedShipmentDetails}
+        shipment={currentShipment}
+        orders={dataOrders}
+        staff={NVTKacc}
         clickDetailOrder={clickDetailOrder}
       />
+
       <OrderDetailsDialog
         open={openDetailsOrder}
         onClose={closeDetailsOrder}
