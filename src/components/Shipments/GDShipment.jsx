@@ -9,7 +9,6 @@ import {
   Checkbox,
   Button,
   IconButton,
-  TextField,
   Box,
   Autocomplete,
   Grid,
@@ -25,7 +24,7 @@ import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AutocompleteInput, changeDateForm, changeDateForm2, formatDeliveryTime } from "../utils";
-import { dexieDB, updateDataFromFireStoreAndDexie } from "../../database/cache";
+import { dexieDB, updateDataFromFireStoreAndDexie, updateDataFromDexieTable, addDataToFireStoreAndDexie, syncDexieToFirestore } from "../../database/cache";
 
 function createDataOrder({
   id,
@@ -87,7 +86,7 @@ const GDShipment = () => {
   const dataShipments = useLiveQuery(() =>
     dexieDB
       .table("shipment")
-      .filter((item) => item.endTKpoint === "TK01" && item.endGDpoint !== 0)// && item.status === "đã xác nhận") // endTKpoint -> endGDpoint
+      .filter((item) => item.endTKpoint === "TK01" && item.endGDpoint !== 0 && item.status === "đã xác nhận") // endTKpoint -> endGDpoint
       .toArray()
   ); // Lọc các shipments(gồm các orders) đã được xác nhận
 
@@ -114,7 +113,7 @@ const GDShipment = () => {
       // console.log("gssy",GDSystemNameMap );
       const updatedOrders = dataOrders.map(order => {
         const orderHistoryDate = orderHistoryDateMap.get(order.id);
-        
+
         const _endGDpointName = GDSystemNameMap.get(order.endGDpoint);
         const newDate = new Date(orderHistoryDate);
         newDate.setDate(newDate.getDate() + 1);
@@ -130,54 +129,6 @@ const GDShipment = () => {
       setOrders(updatedOrders);
     }
   }, [orderHistories, dataOrders, GDSystem]);
-
-  // const [orders, setOrders] = useState([]);
-  // const [mappedOrders, setMappedOrders] = useState([]);
-
-  // useEffect(() => {
-  //   if (orderHistories && dataOrders && GDSystem && dataShipments) {
-  //     // Tạo map từ orderHistory
-  //     const orderHistoryDateMap = new Map(
-  //       orderHistories.map((item) => [item.orderID, item.date])
-  //     );
-  //     // Tạo map từ GDSystem
-  //     const GDSystemNameMap = new Map(
-  //       GDSystem.map((item) => [item.id, item.name])
-  //     );
-
-  //     // Cập nhật orders dựa trên dataOrders và map
-  //     const updatedOrders = dataOrders.map((order) => {
-  //       const orderHistoryDate = orderHistoryDateMap.get(order.id);
-  //       const _endGDpointName = GDSystemNameMap.get(order.endGDpoint);
-  //       // console.log("endGD", _endGDpointName, " ", order.endGDpoint);
-  //       return {
-  //         ...createDataOrder(order),
-  //         endGDpointName: _endGDpointName,
-  //         date: changeDateForm(orderHistoryDate),
-  //       };
-  //     });
-  //     setOrders(updatedOrders);
-
-  //     // Find all confirmed shipments
-  //     const confirmedShipments = dataShipments.filter(
-  //       (shipment) => shipment.status === "đã xác nhận"
-  //     );
-
-  //     // Extract all order IDs from the details of confirmed shipments
-  //     const confirmedOrderIDs = confirmedShipments.reduce((acc, shipment) => {
-  //       return [...acc, ...shipment.details];
-  //     }, []);
-
-  //     // Map the orders that have IDs in the confirmedOrderIDs
-  //     const mappedConfirmedOrders = updatedOrders.filter((order) =>
-  //       confirmedOrderIDs.includes(order.id)
-  //     );
-
-  //     // Update the state with the mapped orders
-  //     setMappedOrders(mappedConfirmedOrders);
-  //   }
-  // }, [orderHistories, dataOrders, GDSystem, dataShipments]);
-
 
   const [selectedOrderDetails, setSelectedOrderDetails] = useState([]);
   const [selectedOrders, setSelectedOrders] = useState([]);
@@ -214,10 +165,10 @@ const GDShipment = () => {
       );
       setOrders(updatedOrders);
 
-      // // Apply the updates to DexieDB
-      // await Promise.all(updatedOrders.map(order =>
-      //   updateDataFromDexieTable('orders', order.id, { status: order.orderStatus })
-      // ));
+      // Apply the updates to DexieDB
+      await Promise.all(updatedOrders.map(order =>
+        updateDataFromDexieTable('orders', order.id, { status: order.orderStatus })
+      ));
 
       // Step 2: Create a new shipment entry
       const newShipment = {
@@ -235,8 +186,8 @@ const GDShipment = () => {
         date: shipmentDate
       };
 
-      // // Add the new shipment to DexieDB and Firestore
-      // await addDataToFireStoreAndDexie("shipment", newShipment);
+      // Add the new shipment to DexieDB and Firestore
+      await addDataToFireStoreAndDexie("shipment", newShipment);
 
       // Step 3: Update or create order history entries
       for (const order of selectedOrders) {
@@ -251,14 +202,14 @@ const GDShipment = () => {
         };
         console.log('Order history updated/created:', newOrderHistory);
 
-        // // Update or create the order history in DexieDB and Firestore
-        // await addDataToFireStoreAndDexie("orderHistory", newOrderHistory);
+        // Update or create the order history in DexieDB and Firestore
+        await addDataToFireStoreAndDexie("orderHistory", newOrderHistory);
+        syncDexieToFirestore("orderHistory", "orderHistory", [historyId]);
       }
 
-      // // Sync dexieDB to firestore
-      // syncDexieToFirestore("shipment", "shipment", Object.keys(newShipment));
-      // syncDexieToFirestore("orderHistory", "orderHistory", [historyId]);
-
+      // Sync dexieDB to firestore
+      syncDexieToFirestore("shipment", "shipment", Object.keys(newShipment));
+     
       // Mock or log the operations for testing
       console.log(`Updating orders in DexieDB for shipmentID: ${shipmentID} with date: ${shipmentDate}`);
 
@@ -438,6 +389,9 @@ const GDShipment = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ paddingTop: "20px" }}>
+      <Typography variant="h4" style={{ fontWeight: 'bold', color: 'darkgreen', marginBottom: '20px' }}>
+          Chuyển hàng đến điểm giao dịch
+        </Typography>
         <Grid container spacing={2} sx={{ marginBottom: "10px" }}>
           {[
             {
@@ -489,7 +443,7 @@ const GDShipment = () => {
         <TableHead>
           <TableRow style={{ backgroundColor: "#f5f5f5" }}>
             <TableCell>
-            <Checkbox
+              <Checkbox
                 checked={selectedOrders.length === filteredOrders.length}
                 onChange={() => {
                   const allSelected = selectedOrders.length === filteredOrders.length;
