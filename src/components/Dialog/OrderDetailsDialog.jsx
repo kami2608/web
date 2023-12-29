@@ -48,7 +48,7 @@ const OrderDetailsDialog = ({ open, onClose, order }) => {
         )}
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'center', padding: '16px' }}>
-       <Buttonme title="Đóng" onClick={onClose} />
+       <Buttonme content="Đóng" onClick={onClose} />
       </DialogActions>
     </Dialog>
   );

@@ -463,7 +463,7 @@ const GDConfirm = () => {
       </Box>
 
       <Box mt={2} mb={2}>
-        <Buttonme title="Xác nhận" onClick={handleConfirmShipment} />
+        <Buttonme content="Xác nhận" onClick={handleConfirmShipment} />
       </Box>
 
       <ShipmentDetailsDialog

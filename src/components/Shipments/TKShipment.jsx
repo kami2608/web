@@ -468,7 +468,7 @@ const TKShipment = () => {
       </Box>
 
       <Box mt={2} mb={2}>
-        <Buttonme title="Tạo đơn" onClick={clickCreateShipment} />
+        <Buttonme content="Tạo đơn" onClick={clickCreateShipment} />
       </Box>
 
       <ShipmentDialog
