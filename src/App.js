@@ -270,6 +270,31 @@ const App = () => {
     return () => listener();
   }, []);
 
+  useEffect(() => {
+    const listener = onSnapshot(collection(fireDB, "delivery"), (snapshot) => {
+      snapshot.docChanges().forEach(async (system) => {
+        const systemDoc = system.doc;
+        const systemData = systemDoc.data();
+        await dexieDB.table("delivery").put({
+          id: systemData.id,
+          date: systemData.createDate,
+          counts: systemData.counts,
+          details: systemData.details,
+          GDpoint: systemData.Gdpoint,
+  //        startGDpointName: systemData.startGDpoint,
+  //        startTKpointName: systemData.startTKpoint,
+  //        endTKpointName: systemData.endTKpoint,
+  //        endGDpointName: systemData.endGDpoint,
+          status: systemData.status,
+        });
+        return;
+      });
+      // logPackageDataFromDexieDB();
+      
+    });
+    return () => listener();
+  });
+
   const navigate = useNavigate();
   const onSignIn = () => navigate("/home");
   const id = localStorage.getItem("id")
