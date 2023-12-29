@@ -236,13 +236,7 @@ const TransToTK = () => {
   };
 
   //option cho autocomplete (bộ lọc)
-  const orderID = [
-    { label: "DH123" },
-    { label: "DH124" },
-    { label: "DH125" },
-    { label: "DH126" },
-    { label: "DH127" },
-  ];
+  const orderID = orders.map((order) => ({ label: order.id }));
 
   const year = [
     { label: 2020 },
