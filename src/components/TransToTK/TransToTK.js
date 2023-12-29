@@ -21,7 +21,7 @@ import {
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ShipmentDialog from "./CreateShipmentDialog";
 import OrderDetailsDialog from "../OrderDetailsDialog";
-import { dexieDB, syncFireStoreToDexie, updateDataFromDexieTable } from "../../database/cache";
+import { addDataToDexieTable, addDataToFireStoreAndDexie, dexieDB,  updateDataFromDexieTable, updateDataFromFireStoreAndDexie } from "../../database/cache";
 import { useLiveQuery } from "dexie-react-hooks";
 import { collection, getDocs, query, where, doc, setDoc, getDoc } from "firebase/firestore";
 import { fireDB } from "../../database/firebase";
@@ -34,46 +34,19 @@ const TransToTK = () => {
   const data = useLiveQuery(() =>
     dexieDB
       .table("orders")
-      .filter((item) => item.startGDpoint === center && item.status == "Chưa xử lý")
+      .filter((item) => item.startGDpoint == center && item.status == "Chưa xử lý")
       .toArray()
   );
 
-  /*const fetchOrders = async() => {
-    //Fetch từ fireDB
-    /*try {
-      const ordersRef = collection(fireDB, "orders");
-      const orderHistoryRef = collection(fireDB, "orderHistory");
-      const q1 = query (orderHistoryRef, /*where("currentLocation", "==", center), where("orderStatus", "==", "Đang chờ xử lý"));
-      const querySnapshotOrderId = await getDocs(q1);
-      const ordersId = querySnapshotOrderId.docs.map((doc) => (doc.id));
-      const q = query (ordersRef, where("startGDpoint", "==", center), where("id", 'in', ordersId));
-      const querySnapshot = await getDocs(q);
-      fetchOrders = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      //console.log
-    } catch (error) {
-      console.log("Lỗi tải orders: ", error);
-    }*/
-    //fetch từ dexie
-    /*dexieDB.orders.where('id').equals("DH123").toArray()
-      .then( records => {
-          // Thêm các bản ghi vào mảng
-        setFetchedOrders(prev => [...prev, records]);
-        console.log('Dữ liệu trong bảng orders:', fetchedOrders);
-    
-        // Bây giờ mảng recordsArray chứa tất cả các bản ghi từ bảng myTable
-      })
-      .catch(error => {
-        console.error('Lỗi khi truy vấn dữ liệu:', error);
-      });
-  }*/
   const [orders, setOrders] = useState([]);
 
   function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
-    cost, status, regisDate) {
+    cost, status) {
     return {id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
-    cost, status, regisDate/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
+    cost, status/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
   }
 
+  
   useEffect(() => {
     if (data) {
       const newRows = data.map((item) => 
@@ -89,12 +62,12 @@ const TransToTK = () => {
             item.weight,
             item.cost,
             item.status, 
-            item.regisDate)
+            )
       );
       setOrders(newRows);
     }
-  }, [center]);
-
+    
+  }, [data]);
 
   /*const updatedOrders = data.forEach((order) => ({
     ...order,
@@ -148,6 +121,21 @@ const TransToTK = () => {
     }
   };
 
+  const genId = async () => {
+    try {
+      const count = await dexieDB.shipment.count();
+      const newId = `S${count.toString().padStart(3, "0")}`;
+      setShipment((values) => ({ ...values, id: newId }));
+    } catch (error) {
+      console.error("Lỗi khi lấy số lượng bản ghi: ", error);
+    }
+    
+  };
+  useEffect(() => {
+    genId();
+    return;
+  }, [data])
+
   //Xử lý Xác nhận tạo đơn
   const submit = async() => {
     try {
@@ -156,13 +144,14 @@ const TransToTK = () => {
         status: "chưa xác nhận"
         //id: "S490",  
       }
-      //thêm vào bảng shipment trong firestore
+      //thêm vào bảng shipment trong firestore và dexie
       const docRef = doc(fireDB, "shipment", newData.id);
       setDoc(docRef, newData);
+      addDataToDexieTable ("shipment", {...newData, id: shipment.id});
 
       
       for (let i = 0; i < selectedOrders.length; i++) {
-        //update dexie
+        //update dexie bảng orders
         const data = orders.find(obj => obj.id === selectedOrders[i]);
         const newData = {...data, status: "Đang chuyển đến điểm TK gửi"};
         updateDataFromDexieTable("orders", selectedOrders[i], newData);
@@ -177,6 +166,17 @@ const TransToTK = () => {
           Description: "Chuyển đến điểm " + diemTK,
         }
         setDoc(docRef, newHistoryLine, {merge: true});
+
+        await dexieDB.table("orderHistory")
+          .where("id")
+          .equals(selectedOrders[i]+"_2")
+          .modify((record) => {
+            record.date = shipment.createDate;
+            record.orderStatus = "Đã tạo đơn";
+            record.currentLocation = diemTK;
+            record.Description = "Chuyển đến điểm " + diemTK;
+          })
+
       }
       
       //
@@ -184,7 +184,7 @@ const TransToTK = () => {
       setOpenSnackbar(true);
       setShipment(defaultForm);
     } catch (error) {
-      console.error('Loi khi add shipment trong fireDB:', error);
+      console.error('Loi khi add shipment:', error);
     }
     
   };
@@ -508,7 +508,7 @@ const TransToTK = () => {
               <TableCell>{order.type}</TableCell>
               <TableCell>{order.weight}</TableCell>
               
-              <TableCell>{order.regisDate}</TableCell>
+              <TableCell>{order.regisDate || ""}</TableCell>
               <TableCell>
                 <IconButton
                   onClick={() => clickDetailOrder(order)}
