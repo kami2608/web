@@ -83,13 +83,13 @@ export default function SignUpForm({
               row
             >
               <FormControlLabel
-                value="male"
+                value="Nam"
                 control={<Radio />}
                 label="Nam"
                 style={{ color: "black" }}
               />
               <FormControlLabel
-                value="female"
+                value="Nữ"
                 control={<Radio />}
                 label="Nữ"
                 style={{ color: "black" }}

@@ -45,12 +45,19 @@ const app = initializeApp({
   // messagingSenderId: "968165012418",
   // appId: "1:968165012418:web:d60163f26d79ac342cdc5b"
 
-  apiKey: "AIzaSyA4wm1g4e8b9kpv_x1jayoBuRP-xNvI84c",
-  authDomain: "magic-post-vip.firebaseapp.com",
-  projectId: "magic-post-vip",
-  storageBucket: "magic-post-vip.appspot.com",
-  messagingSenderId: "709874716113",
-  appId: "1:709874716113:web:89a954043a6199222da4f0"
+  // apiKey: "AIzaSyA4wm1g4e8b9kpv_x1jayoBuRP-xNvI84c",
+  // authDomain: "magic-post-vip.firebaseapp.com",
+  // projectId: "magic-post-vip",
+  // storageBucket: "magic-post-vip.appspot.com",
+  // messagingSenderId: "709874716113",
+  // appId: "1:709874716113:web:89a954043a6199222da4f0"
+
+  apiKey: "AIzaSyCH-TqqjjrgWJDTIkrb-M1NGPWphEGvKbM",
+  authDomain: "test-76d97.firebaseapp.com",
+  projectId: "test-76d97",
+  storageBucket: "test-76d97.appspot.com",
+  messagingSenderId: "986134292791",
+  appId: "1:986134292791:web:eeba1c111f6e9f534392b2"
 });
 
 const fireDB = getFirestore(app);
