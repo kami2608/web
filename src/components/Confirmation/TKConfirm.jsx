@@ -8,7 +8,22 @@ import {
   TableCell,
   Checkbox,
   IconButton,
+  TextField,
   Box,
+  Autocomplete,
+  Card,
+  CardContent,
+  Input,
+  CardBody,
+  CardTitle,
+  Form,
+  FormGroup,
+  ListItemText,
+  List,
+  ListItem,
+  Divider,
+  TableContainer,
+  Tab,
   TableSortLabel,
   Grid,
 } from "@mui/material";
@@ -129,7 +144,7 @@ const TKConfirm = () => {
 
   const closeDetailsShipment = () => {
     setOpenDetailsShipment(false);
-    setCurrentShipment(null);
+    setCurrentShipment(null); 
   };
 
   const clickDetailOrder = (order) => {
@@ -163,44 +178,49 @@ const TKConfirm = () => {
   }
 
   const handleConfirmShipment = async () => {
-    // 1. Update shipment status
-    for (const shipmentID of selectedShipments) {
-      const updatedShipmentData = { status: "đã xác nhận" };
-      await updateDataFromFireStoreAndDexie("shipment", shipmentID, updatedShipmentData);
-    }
+    // xử lý backend
 
-    // 2. Update order histories
-    const updateHistoriesPromises = selectedShipments.flatMap(async (shipmentID) => {
-      const shipment = await getShipmentDetailsById(shipmentID);
-      if (!shipment || !shipment.ordersList) return [];
+    // // 1. Update shipment status
+    // for (const shipmentID of selectedShipments) {
+    //   const updatedShipmentData = { status: "đã xác nhận" };
+    //   await updateDataFromFireStoreAndDexie("shipment", shipmentID, updatedShipmentData);
+    // }
 
-      return shipment.ordersList.split(",").map(orderId => {
-        const historyId = `${orderId}_3`; // startGDpoint -> startTKpoint
-        const updatedHistoryData = {
-          orderStatus: "Đã xác nhận",
-        };
-        console.log("Updating historyId", historyId, "with data", updatedHistoryData);
-        return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
-      });
-    });
+    // // 2. Update order histories
+    // const updateHistoriesPromises = selectedShipments.flatMap(async (shipmentID) => {
+    //   const shipment = await getShipmentDetailsById(shipmentID);
+    //   if (!shipment || !shipment.ordersList) return [];
 
-    // 3. Wait for all updates to complete
-    await Promise.all(updateHistoriesPromises);
-    console.log("Đã cập nhật DexieDB thành công!");
+    //   return shipment.ordersList.split(",").map(orderId => {
+    //     const historyId = `${orderId}_3`; // startGDpoint -> startTKpoint
+    //     const updatedHistoryData = {
+    //       orderStatus: "Đã xác nhận",
+    //     };
+    //     console.log("Updating historyId", historyId, "with data", updatedHistoryData);
+    //     return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
+    //   });
+    // });
 
-    // 4. Sync updated data to Firestore
-    syncDexieToFirestore("shipment", "shipment", ["status"]);
-    syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
+    // // 3. Wait for all updates to complete
+    //  await Promise.all(updateHistoriesPromises);
+    // console.log("Đã cập nhật DexieDB thành công!");
 
-    // 5. Update local state
-    const updatedShipments = shipments.map(shipment =>
-      selectedShipments.includes(shipment.id) ? { ...shipment, status: "đã xác nhận" } : shipment
+    // // 4. Sync updated data to Firestore
+    //  syncDexieToFirestore("shipment", "shipment", ["status"]);
+    //  syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
+
+    // Cập nhật state
+    const updatedShipments = shipments.map((shipment) =>
+      selectedShipments.includes(shipment.id) && shipment.status === "chưa xác nhận"
+        ? { ...shipment, status: "đã xác nhận" }
+        : shipment
     );
     setShipments(updatedShipments);
 
     // 6. Clear selected shipments
     setSelectedShipments([]);
   };
+
 
   const TKpoints = [
     { label: "Bà Rịa - Vũng Tàu" },
@@ -276,8 +296,7 @@ const TKConfirm = () => {
       (!selectedDate || formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth || formattedDeliveryTime.getMonth() + 1 === parseInt(selectedMonth.label)) &&
       (!selectedYear || formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
-      (!selectedStatus ||
-        (shipment.status ? "đã xác nhận" : "chưa xác nhận") === selectedStatus.label)
+      (!selectedStatus || (shipment.status === selectedStatus.label))
     );
   });
 
@@ -364,7 +383,7 @@ const TKConfirm = () => {
               <strong>Từ điểm tập kết</strong>
               <TableSortLabel
                 active={sortConfig.key === 'startTKpointName'}
-                direction={sortConfig.key === 'startTKpointName' ? sortConfig.direction : 'asc'}
+                direction={sortConfig.key === 'startTKpointMame' ? sortConfig.direction : 'asc'}
                 onClick={() => sortData('startTKpointName')}
               />
             </TableCell>
@@ -425,7 +444,7 @@ const TKConfirm = () => {
       </Box>
 
       <Box mt={2} mb={2}>
-        <Buttonme content="Xác nhận" onClick={handleConfirmShipment} />
+        <Buttonme title="Xác nhận" onClick={handleConfirmShipment} />
       </Box>
 
       <ShipmentDetailsDialog
@@ -440,7 +459,7 @@ const TKConfirm = () => {
       <OrderDetailsDialog
         open={openDetailsOrder}
         onClose={closeDetailsOrder}
-        selectedOrderDetails={selectedOrderDetails}
+        orders={selectedOrderDetails}
       />
     </Container>
   );

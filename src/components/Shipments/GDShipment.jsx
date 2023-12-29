@@ -206,12 +206,13 @@ const GDShipment = () => {
 
   const handleConfirmShipment = async (shipmentID, shipmentDate) => {
     try {
-      console.log("selcted orer", selectedOrders);
-      //  Update the orders' status in DexieDB and local state
-      const updatedOrders = orders.map(order => ({
-        ...order,
-        status: selectedOrders.includes(order.id) ? "Đã tạo đơn" : order.orderStatus
-      }));
+      // Cập nhật state
+      const updatedOrders = orders.map((order) =>
+        selectedOrders.includes(order.id) && order.orderStatus === "Chưa tạo đơn"
+          ? { ...order, orderStatus: "Đã tạo đơn" }
+          : order
+      );
+      setOrders(updatedOrders);
 
       // // Apply the updates to DexieDB
       // await Promise.all(updatedOrders.map(order =>
@@ -223,8 +224,14 @@ const GDShipment = () => {
         id: shipmentID, // Randomly generated ID from ShipmentDialog
         counts: selectedOrders.length,
         details: selectedOrders.map(orderId => ({ orderId })),
-        startTKpoint: 'TK01',
-        endTKpoint: orders.find(order => selectedOrders.includes(order.id))?.endTKpoint,
+        startTKpoint: 0,
+        endTKpoint: 'TK01',
+        startGDpoint: 0,
+        endGDpoint: orders.find(order => selectedOrders.includes(order.id))?.endGDpoint,
+        startGDpointName: 0,
+        startTKpointName: 0,
+        endTKpointName: 'TK01',
+        endGDpointName: 0,
         date: shipmentDate
       };
 
@@ -254,9 +261,6 @@ const GDShipment = () => {
 
       // Mock or log the operations for testing
       console.log(`Updating orders in DexieDB for shipmentID: ${shipmentID} with date: ${shipmentDate}`);
-
-      // Step 4: Set updated orders to the state
-      setOrders(updatedOrders);
 
       // Reset UI state
       setSelectedOrders([]);
