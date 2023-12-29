@@ -23,8 +23,19 @@ import ShipmentDialog from "../Dialog/ShipmentDialog";
 import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AutocompleteInput, changeDateForm, changeDateForm2, formatDeliveryTime } from "../utils";
-import { dexieDB, updateDataFromFireStoreAndDexie, updateDataFromDexieTable, addDataToFireStoreAndDexie, syncDexieToFirestore } from "../../database/cache";
+import {
+  AutocompleteInput,
+  changeDateForm,
+  changeDateForm2,
+  formatDeliveryTime,
+} from "../utils";
+import {
+  dexieDB,
+  updateDataFromFireStoreAndDexie,
+  updateDataFromDexieTable,
+  addDataToFireStoreAndDexie,
+  syncDexieToFirestore,
+} from "../../database/cache";
 
 function createDataOrder({
   id,
@@ -86,7 +97,12 @@ const GDShipment = () => {
   const dataShipments = useLiveQuery(() =>
     dexieDB
       .table("shipment")
-      .filter((item) => item.endTKpoint === "TK01" && item.endGDpoint !== 0 && item.status === "đã xác nhận") // endTKpoint -> endGDpoint
+      .filter(
+        (item) =>
+          item.endTKpoint === "TK01" &&
+          item.endGDpoint !== 0 &&
+          item.status === "đã xác nhận"
+      ) // endTKpoint -> endGDpoint
       .toArray()
   ); // Lọc các shipments(gồm các orders) đã được xác nhận
 
@@ -103,15 +119,15 @@ const GDShipment = () => {
     if (orderHistories && dataOrders && GDSystem) {
       // Tạo map từ orderHistory
       const orderHistoryDateMap = new Map(
-        orderHistories.map(item => [item.orderID, item.date])
+        orderHistories.map((item) => [item.orderID, item.date])
       );
       // Tạo map từ GDSystem
       const GDSystemNameMap = new Map(
-        GDSystem.map(item => [item.id, item.name])
+        GDSystem.map((item) => [item.id, item.name])
       );
       // Cập nhật orders dựa trên dataOrders và map
       // console.log("gssy",GDSystemNameMap );
-      const updatedOrders = dataOrders.map(order => {
+      const updatedOrders = dataOrders.map((order) => {
         const orderHistoryDate = orderHistoryDateMap.get(order.id);
 
         const _endGDpointName = GDSystemNameMap.get(order.endGDpoint);
@@ -159,31 +175,37 @@ const GDShipment = () => {
     try {
       // Cập nhật state
       const updatedOrders = orders.map((order) =>
-        selectedOrders.includes(order.id) && order.orderStatus === "Chưa tạo đơn"
+        selectedOrders.includes(order.id) &&
+        order.orderStatus === "Chưa tạo đơn"
           ? { ...order, orderStatus: "Đã tạo đơn" }
           : order
       );
       setOrders(updatedOrders);
 
       // Apply the updates to DexieDB
-      await Promise.all(updatedOrders.map(order =>
-        updateDataFromDexieTable('orders', order.id, { status: order.orderStatus })
-      ));
+      await Promise.all(
+        updatedOrders.map((order) =>
+          updateDataFromDexieTable("orders", order.id, {
+            status: order.orderStatus,
+          })
+        )
+      );
 
       // Step 2: Create a new shipment entry
       const newShipment = {
         id: shipmentID, // Randomly generated ID from ShipmentDialog
         counts: selectedOrders.length,
-        details: selectedOrders.map(orderId => ({ orderId })),
+        details: selectedOrders.map((orderId) => ({ orderId })),
         startTKpoint: 0,
-        endTKpoint: 'TK01',
+        endTKpoint: "TK01",
         startGDpoint: 0,
-        endGDpoint: orders.find(order => selectedOrders.includes(order.id))?.endGDpoint,
+        endGDpoint: orders.find((order) => selectedOrders.includes(order.id))
+          ?.endGDpoint,
         startGDpointName: 0,
         startTKpointName: 0,
-        endTKpointName: 'TK01',
+        endTKpointName: "TK01",
         endGDpointName: 0,
-        date: shipmentDate
+        date: shipmentDate,
       };
 
       // Add the new shipment to DexieDB and Firestore
@@ -200,7 +222,7 @@ const GDShipment = () => {
           orderStatus: "Đã tạo đơn",
           date: shipmentDate,
         };
-        console.log('Order history updated/created:', newOrderHistory);
+        console.log("Order history updated/created:", newOrderHistory);
 
         // Update or create the order history in DexieDB and Firestore
         await addDataToFireStoreAndDexie("orderHistory", newOrderHistory);
@@ -209,9 +231,11 @@ const GDShipment = () => {
 
       // Sync dexieDB to firestore
       syncDexieToFirestore("shipment", "shipment", Object.keys(newShipment));
-     
+
       // Mock or log the operations for testing
-      console.log(`Updating orders in DexieDB for shipmentID: ${shipmentID} with date: ${shipmentDate}`);
+      console.log(
+        `Updating orders in DexieDB for shipmentID: ${shipmentID} with date: ${shipmentDate}`
+      );
 
       // Reset UI state
       setSelectedOrders([]);
@@ -348,16 +372,16 @@ const GDShipment = () => {
     const formattedDeliveryTime = formatDeliveryTime(order.date);
     return (
       (!selectedOrderID || order.id === selectedOrderID.label) &&
-      (!selectedGDpoint
-        || ((order.endGDpoint) && (order.endGDpointName === selectedGDpoint.label))) &&
+      (!selectedGDpoint ||
+        (order.endGDpoint && order.endGDpointName === selectedGDpoint.label)) &&
       (!selectedDate ||
         formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth ||
         formattedDeliveryTime.getMonth() + 1 ===
-        parseInt(selectedMonth.label)) &&
+          parseInt(selectedMonth.label)) &&
       (!selectedYear ||
         formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
-      (!selectedStatus || (order.orderStatus === selectedStatus.label))
+      (!selectedStatus || order.orderStatus === selectedStatus.label)
     );
   });
 
@@ -389,7 +413,14 @@ const GDShipment = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ paddingTop: "20px" }}>
-      <Typography variant="h4" style={{ fontWeight: 'bold', color: 'darkgreen', marginBottom: '20px' }}>
+        <Typography
+          variant="h4"
+          style={{
+            fontWeight: "bold",
+            color: "darkgreen",
+            marginBottom: "20px",
+          }}
+        >
           Chuyển hàng đến điểm giao dịch
         </Typography>
         <Grid container spacing={2} sx={{ marginBottom: "10px" }}>
@@ -446,8 +477,11 @@ const GDShipment = () => {
               <Checkbox
                 checked={selectedOrders.length === filteredOrders.length}
                 onChange={() => {
-                  const allSelected = selectedOrders.length === filteredOrders.length;
-                  setSelectedOrders(allSelected ? [] : filteredOrders.map((order) => order.id));
+                  const allSelected =
+                    selectedOrders.length === filteredOrders.length;
+                  setSelectedOrders(
+                    allSelected ? [] : filteredOrders.map((order) => order.id)
+                  );
                 }}
               />
             </TableCell>
@@ -476,7 +510,9 @@ const GDShipment = () => {
               <TableSortLabel
                 active={sortConfig.key === "endGDpointName"}
                 direction={
-                  sortConfig.key === "endGDpointName" ? sortConfig.direction : "asc"
+                  sortConfig.key === "endGDpointName"
+                    ? sortConfig.direction
+                    : "asc"
                 }
                 onClick={() => sortData("endGDpointName")}
               />
@@ -548,8 +584,10 @@ const GDShipment = () => {
       <ShipmentDialog
         open={openCreateShipment}
         onClose={closeCreateShipment}
-        onConfirm={(shipmentID, shipmentDate) => handleConfirmShipment(shipmentID, shipmentDate)}
-        orders={orders.filter(order => selectedOrders.includes(order.id))}
+        onConfirm={(shipmentID, shipmentDate) =>
+          handleConfirmShipment(shipmentID, shipmentDate)
+        }
+        orders={orders.filter((order) => selectedOrders.includes(order.id))}
         NVTKacc={NVTKacc}
       />
 
@@ -565,7 +603,6 @@ const GDShipment = () => {
         onClose={closeDetailsOrder}
         order={selectedOrderDetails}
       />
-
     </Container>
   );
 };
