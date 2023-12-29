@@ -17,17 +17,18 @@ import {
   Tab,
   TableSortLabel,
   Grid,
+  Stack,
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeliveryDetailsDialog from "./DeliveryDetailsDialog";
 import OrderDetailsDialog from "../OrderDetailsDialog";
-import { dexieDB } from "../../database/cache";
+import { dexieDB, updateDataFromFireStoreAndDexie } from "../../database/cache";
 import { fireDB } from "../../database/firebase";
 import { collection, doc, getDocs, getDoc, setDoc, query, where } from "firebase/firestore";
 
 
 const DeliveryConfirm = () => {
-  const center = "GD22";
+  const center = "GD10";
   /*const fetchedDeliveryBills = [
     {
       id: "S246",
@@ -87,6 +88,7 @@ const DeliveryConfirm = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
 
+
   const getDeliveryBills = async() => {
     const deliRef = collection(fireDB, "delivery");
     const q = query(deliRef, where('Gdpoint', '==', center), where('status', '==', 'chưa xác nhận'));
@@ -109,7 +111,7 @@ const DeliveryConfirm = () => {
   useEffect(() => {
     console.log("getDeli:");
     getDeliveryBills();
-  }, []);
+  }, [selectedDeliveryBills]);
 
   //Sự kiện Xem chi tiết đơn chuyển; Nhấn VisibilityIcon
   const clickDetailsDelivery = (deliveryDetails) => {
@@ -182,85 +184,42 @@ const DeliveryConfirm = () => {
     console.log("Các DH đc chọn: ", selectedOrders);
   };
 
-  const handleConfirmDelivery = () => {
+  const handleConfirmDelivery = async() => {
     if (selectedDeliveryBills.length > 0) {
-      submitSuccessful();
+      await submit(true);
     }
-    setDeliveryBills((prevDeliveryBills) => {
-      const updatedDeliveryBills = prevDeliveryBills.map((delivery) =>
-        selectedDeliveryBills.includes(delivery.id) &&
-        delivery.status === "Chưa xác nhận"
-          ? { ...delivery, status: "Đã xác nhận", confirmed: true }
-          : delivery
-      );
-      return updatedDeliveryBills;
-    });
+    const updatedDelis = deliveryBills.map(deli =>
+      selectedDeliveryBills.includes(deli.id) ? { ...deli, status: "thành công" } : deli
+    );
+    setDeliveryBills(updatedDelis);
+
     setSelectedDeliveryBills([]);
     setSelectedOrders([]);
   };
-  //Ghi vào CSDL
-  const submitSuccessful = async() => {
-    try {
-      for (let i=0; i<selectedDeliveryBills.length; i++) {
-        //cập nhật bảng delivery trong firestore
-        const newData = {
-          status: "thành công",
-        }
-        const docRef = doc(fireDB, "delivery", selectedDeliveryBills[i]);
-        setDoc(docRef, newData, {merge: true});
-      }
-      
 
-      for (let i = 0; i < selectedOrders.length; i++) {
-        //update dexie bảng orders
-        await dexieDB.table("orders")
-          .where("id")
-          .equals(selectedOrders[i])
-          .modify((order) => {
-            order.status = "Đã giao thành công cho người nhận";
-          })
-
-        //update bảng orderHistory trong firestore
-        const docRef = doc(fireDB, "orderHistory", selectedOrders[i]+"_5");
-        //const querySnapshot = getDoc(docRef);
-        const newHistoryData = {
-          //...querySnapshot.doc.data(),
-          currentLocation: center,
-          orderStatus: "Đã giao thành công cho người nhận",
-          Description: "Đã giao thành công cho người nhận",
-        }
-        setDoc(docRef, newHistoryData, {merge: true});
-      }
-      
-    } catch (error) {
-      console.error('Loi khi xác nhận giao hàng:', error);
-    }   
-  };
-
-  const handleUnsuccessfulDelivery = () => {
+  const handleUnsuccessfulDelivery = async() => {
     if (selectedDeliveryBills.length > 0) {
-      submitUnsuccessful();
+      await submit(false);
     }
-    setDeliveryBills((prevDeliveryBills) => {
-      const updatedDeliveryBills = prevDeliveryBills.map((delivery) =>
-        selectedDeliveryBills.includes(delivery.id) &&
-        delivery.status === "Chưa xác nhận"
-          ? { ...delivery, status: "Không thành công", /*confirmed: true*/ }
-          : delivery
-      );
-      return updatedDeliveryBills;
-    });
+    const updatedDelis = deliveryBills.map(deli =>
+      selectedDeliveryBills.includes(deli.id) ? { ...deli, status: "không thành công" } : deli
+    );
+    setDeliveryBills(updatedDelis);
+    setSelectedDeliveryBills([]);
+    setSelectedOrders([]);
   }
-
-  const submitUnsuccessful = async() => {
+  //Ghi vào CSDL
+  const submit = async(isSuccess) => {
+    const msg = isSuccess ? "thành công" : "không thành công"
     try {
       for (let i=0; i<selectedDeliveryBills.length; i++) {
         //cập nhật bảng delivery trong firestore
         const newData = {
-          status: "không thành công",
+          status: msg,
         }
         const docRef = doc(fireDB, "delivery", selectedDeliveryBills[i]);
         setDoc(docRef, newData, {merge: true});
+        updateDataFromFireStoreAndDexie("delivery", selectedDeliveryBills[i], newData);
       }
       
 
@@ -270,20 +229,23 @@ const DeliveryConfirm = () => {
           .where("id")
           .equals(selectedOrders[i])
           .modify((order) => {
-            order.status = "Đã giao không thành công cho người nhận";
+            order.status = "Đã giao" + msg + " cho người nhận";
           })
 
         //update bảng orderHistory trong firestore
-        const docRef = doc(fireDB, "orderHistory", selectedOrders[i]+"_5");
-        //const querySnapshot = getDoc(docRef);
+
+        /*const docRef = doc(fireDB, "orderHistory", selectedOrders[i]+"_5");
+        //const querySnapshot = getDoc(docRef);*/
         const newHistoryData = {
-          //...querySnapshot.doc.data(),
+          
           currentLocation: "",
-          orderStatus: "Đã giao không thành công cho người nhận",
-          Description: "Đã giao không thành công cho người nhận",
+          orderStatus: "Đã giao" + msg + " cho người nhận",
+          Description: "Đã giao" + msg + " cho người nhận",
         }
-        setDoc(docRef, newHistoryData, {merge: true});
+        updateDataFromFireStoreAndDexie("orderHistory", selectedOrders[i]+"_5", 
+        newHistoryData);
       }
+      alert ("Đã xác nhận đơn giao " + msg);
       
     } catch (error) {
       console.error('Loi khi xác nhận giao hàng:', error);
@@ -291,7 +253,7 @@ const DeliveryConfirm = () => {
   };
 
   
-  const status = [{ label: "Chưa xác nhận" }, { label: "Đã xác nhận" }];
+  const status = [{ label: "Chưa xác nhận" }, { label: "Thành công" }, { label: "Không thành công" }];
   const year = [
     { label: 2020 },
     { label: 2021 },
@@ -413,7 +375,7 @@ const DeliveryConfirm = () => {
             renderInput={(params) => <TextField {...params} label="Năm" />}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={2} lg={2}>
+        {/*<Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={status}
@@ -427,8 +389,8 @@ const DeliveryConfirm = () => {
               />
             )}
           />
-        </Grid>
-      </Grid>
+        </Grid>*/}
+            </Grid>
 
       <Table>
         <TableHead>
@@ -535,6 +497,8 @@ const DeliveryConfirm = () => {
         </TableBody>
       </Table>
 
+      <Stack direction="row" spacing={2}>
+
       <Box mt={2} mb={2}>
         <Button
           variant="contained"
@@ -543,12 +507,12 @@ const DeliveryConfirm = () => {
           onMouseOut={(e) => (e.target.style.backgroundColor = "#4CAF50")}
           onClick={handleConfirmDelivery}
         >
-          Xác nhận giao thành công
+          Giao thành công
         </Button>
 
       </Box>
 
-      <Box>
+      <Box mt={2} mb={2}>
         <Button
           variant="contained"
           style={{ backgroundColor: "#4CAF50", color: "#fff" }}
@@ -559,6 +523,8 @@ const DeliveryConfirm = () => {
           Giao không thành công
         </Button>
       </Box>
+
+      </Stack>
 
       <DeliveryDetailsDialog
         open={openDetailsDelivery}
@@ -576,3 +542,4 @@ const DeliveryConfirm = () => {
 };
 
 export default DeliveryConfirm;
+
