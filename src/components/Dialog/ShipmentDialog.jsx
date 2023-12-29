@@ -26,7 +26,7 @@ const ShipmentDialog = ({ open, onClose, onConfirm, selectedOrders, orders }) =>
   };
 
   const renderOrderRows = () => {
-    return selectedOrders.map((id, index) => {
+    if(selectedOrders) return selectedOrders.map((id, index) => {
       const orderDetails = getOrderDetails(id);
       return (
         <TableRow key={id}>
@@ -38,6 +38,7 @@ const ShipmentDialog = ({ open, onClose, onConfirm, selectedOrders, orders }) =>
         </TableRow>
       );
     });
+    else return "";
   };
 
   const [creationDate, setCreationDate] = useState(new Date());
@@ -71,7 +72,7 @@ const ShipmentDialog = ({ open, onClose, onConfirm, selectedOrders, orders }) =>
             </Grid>
             <Grid item xs={12}>
               <Typography variant="subtitle1">
-                Số Lượng Đơn Hàng: {selectedOrders.length}
+                Số Lượng Đơn Hàng: {selectedOrders ? selectedOrders.length : 0}
               </Typography>
             </Grid>
           </Grid>
