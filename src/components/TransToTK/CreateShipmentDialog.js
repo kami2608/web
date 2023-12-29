@@ -58,30 +58,6 @@ const ShipmentDialog = ({
   };
 
   //const [creationDate, setCreationDate] = useState(new Date().toDateString());
-  const genId = async () => {
-    try {
-      // Đọc tất cả các đơn hàng để lấy id của đơn hàng cuối cùng
-      const shipmentCollection = collection(fireDB, "shipment");
-      const querySnapshot = await getDocs(shipmentCollection);
-  
-      // Tìm id cuối cùng
-      let lastId = "";
-      querySnapshot.forEach((doc) => {
-        const shipmentId = doc.id;
-          lastId = shipmentId;
-      });
-  
-      // Tăng giá trị của id lên 1
-      const stt = parseInt(lastId.substring(1)) + 1;
-      const newId = `S${stt.toString().padStart(3, "0")}`;
-      setShipment(values => ({...values, id: newId}));
-    } catch (error) {
-      console.log("Lỗi khi tạo id đơn hàng", error)
-    }
-  }
-  useEffect (() => {
-    genId();
-  }, []);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg">
