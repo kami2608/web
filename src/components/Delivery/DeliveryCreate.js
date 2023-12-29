@@ -17,6 +17,7 @@ import {
   Paper,
   Typography,
   Snackbar,
+  Pagination,
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeliveryFormDialog from "./DeliveryFormDialog";
@@ -25,6 +26,8 @@ import { dexieDB, updateDataFromDexieTable, addDataToFireStoreAndDexie, updateDa
 import { useLiveQuery } from "dexie-react-hooks";
 import { collection, getDocs, query, where, doc, setDoc, getDoc } from "firebase/firestore";
 import { fireDB } from "../../database/firebase";
+
+
 
 const DeliveryCreate = () => {
   const center = "GD10";
@@ -51,6 +54,9 @@ const DeliveryCreate = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
   const [openSnackbar, setOpenSnackbar] = useState(false);
 
   const data = useLiveQuery(() =>
@@ -64,7 +70,6 @@ const DeliveryCreate = () => {
     dexieDB
       .table("orderHistory")
       .filter((item) => item.id.endsWith("4") && item.currentLocation == center) 
-      .toArray()
   );
 
   useEffect(() => {
@@ -81,7 +86,7 @@ const DeliveryCreate = () => {
             item.type,
             item.weight,
             item.cost,
-            item.status, 
+            "chưa tạo đơn", 
             item.regisDate)
       );
       setOrders(newRows);
@@ -104,10 +109,14 @@ const DeliveryCreate = () => {
     const newId = `D${count.toString().padStart(3, "0")}`;
     setDeliveryBill((values) => ({ ...values, id: newId }));
     return;
-  }, [data])
+  }, [openDeliveryForm])
 
   function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
     cost, status, regisDate) {
+      if (regisDate == undefined) {
+        const a = ["2023-12-27", "2023-12-26", "2023-12-20", "2023-12-25", "2023-12-19"]
+        regisDate = a[Math.floor(Math.random() * 5)];
+      }
     return {id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
     cost, status, regisDate/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
   }
@@ -163,7 +172,8 @@ const DeliveryCreate = () => {
           date: deliveryBill.createDate,
           orderStatus: "Đang giao hàng",
         }
-        updateDataFromFireStoreAndDexie("orderHistory", newHistoryLine);
+        updateDataFromFireStoreAndDexie("orderHistory", selectedOrders[i]+"_5", 
+        newHistoryLine);
       }
       
       
@@ -175,7 +185,7 @@ const DeliveryCreate = () => {
     
   };
 
-  const formValidate = () => {
+  const formValidate = async() => {
     if (
       deliveryBill.id == "" ||
       deliveryBill.createDate == "" ||
@@ -277,7 +287,7 @@ const DeliveryCreate = () => {
   };
 
   const filteredOrders = orders.filter((order) => {
-    const formattedRegisDate = formatTime(order.regisDate);
+    const formattedRegisDate = new Date(order.regisDate);//formatTime(order.regisDate);
     return (
       (!selectedOrderID || order.id === selectedOrderID.label) &&
       /*(!selectedTransactionPoint ||
@@ -338,17 +348,7 @@ const DeliveryCreate = () => {
             )}
           />
         </Grid>
-        {/*<Grid item xs={12} sm={6} md={2} lg={2}>
-          <Autocomplete
-            disablePortal
-            options={transactionPointList}
-            value={selectedTransactionPoint}
-            onChange={handleTransactionPointChange}
-            renderInput={(params) => (
-              <TextField {...params} label="Điểm tập kết" />
-            )}
-            />
-        </Grid>*/}
+        
         <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
@@ -376,7 +376,7 @@ const DeliveryCreate = () => {
             renderInput={(params) => <TextField {...params} label="Năm" />}
           />
         </Grid>
-        <Grid item xs={12} sm={6} md={2} lg={2}>
+      {/*  <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={status}
@@ -390,7 +390,7 @@ const DeliveryCreate = () => {
               />
             )}
           />
-        </Grid>
+            </Grid> */}
       </Grid>
 
       <Table>
@@ -474,8 +474,12 @@ const DeliveryCreate = () => {
             </TableCell>
           </TableRow>
         </TableHead>
-        <TableBody>
-          {getSortedData(filteredOrders).map((order) => (
+
+        {filteredOrders && filteredOrders.length > 0 && (       
+        <TableBody>   
+          {getSortedData(filteredOrders)
+          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+          .map((order) => (
             <TableRow
               key={order.id}
               sx={{
@@ -496,7 +500,7 @@ const DeliveryCreate = () => {
               <TableCell>{order.type}</TableCell>
               <TableCell>{order.weight}</TableCell>
              
-              <TableCell>{order.date || ""}</TableCell>
+              <TableCell>{order.regisDate || ""}</TableCell>
               <TableCell>
                 <IconButton
                   onClick={() => clickDetailOrder(order)}
@@ -508,8 +512,18 @@ const DeliveryCreate = () => {
               <TableCell>{order.status}</TableCell>
             </TableRow>
           ))}
+            
         </TableBody>
+        )}
       </Table>
+
+      <Box mt={2} mb={2} display="flex" justifyContent="flex-end">
+        <Pagination
+          count={Math.ceil(filteredOrders.length / rowsPerPage)}
+          page={page + 1}
+          onChange={(event, newPage) => setPage(newPage - 1)}
+        />
+      </Box>
 
       <Box mt={2} mb={2}>
         <Button
@@ -522,6 +536,8 @@ const DeliveryCreate = () => {
           Tạo đơn
         </Button>
       </Box>
+
+      
 
       <DeliveryFormDialog
         open={openDeliveryForm}
