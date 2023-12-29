@@ -409,10 +409,11 @@ useEffect(() => {
       <ShipmentDialog
         open={openCreateShipment}
         onClose={closeCreateShipment}
-        onConfirm={handleConfirmShipment}
-        selectedOrders={selectedOrders}
-        orders={orders}
+        onConfirm={(shipmentID, shipmentDate) => handleConfirmShipment(shipmentID, shipmentDate)}
+        orders={orders.filter(order => selectedOrders.includes(order.id))}
+        NVTKacc={NVTKacc}
       />
+
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}
@@ -420,13 +421,11 @@ useEffect(() => {
         message="Đã tạo đơn thành công"
       />
 
-
       <OrderDetailsDialog
         open={openDetailsOrder}
         onClose={closeDetailsOrder}
-        selectedOrderDetails={selectedOrderDetails}
+        order={selectedOrderDetails}
       />
-
     </Container>
 
   );
