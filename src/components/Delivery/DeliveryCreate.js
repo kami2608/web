@@ -56,14 +56,14 @@ const DeliveryCreate = () => {
   const data = useLiveQuery(() =>
     dexieDB
       .table("orders")
-      .filter((item) => item.endGDpoint == center /*&& item.status == "Đã đến điểm GD nhận"*/)
+      .filter((item) => item.endGDpoint == center && item.status == "Đã đến điểm GD nhận")
       .toArray()
   );
 
   const orderHistories = useLiveQuery(() =>
     dexieDB
       .table("orderHistory")
-      .filter((item) => item.id.endsWith("4") && item.currentLocation == center) // Thêm cả cái này nữa, nhưng hiện tại data chưa có && item.orderStatus === 'Đã xác nhận') // Lọc order đi từ endTKpoint -> endGDpoint
+      .filter((item) => item.id.endsWith("4") && item.currentLocation == center) 
       .toArray()
   );
 
