@@ -502,7 +502,6 @@ const GDShipment = () => {
         onClose={closeDetailsOrder}
         order={selectedOrderDetails}
       />
-      
     </Container>
   );
 };
