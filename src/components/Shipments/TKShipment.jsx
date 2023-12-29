@@ -77,6 +77,9 @@ const TKSystem = useLiveQuery(() =>
     .table("TKsystem")
     .toArray()
 );
+
+const NVTKacc = useLiveQuery(() => dexieDB.table("NVTKacc").toArray()); 
+
 const dataOrders = useLiveQuery(() =>
   dexieDB
     .table("orders")
