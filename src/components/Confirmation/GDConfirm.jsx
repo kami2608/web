@@ -17,11 +17,11 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import Pagination from '@mui/material/Pagination';
 import ShipmentDetailsDialog from "../Dialog/ShipmentDetailsDialog";
 import OrderDetailsDialog from "../Dialog/OrderDetailsDialog";
+import ShipmentTable from "../Table/ShipmentTable";
 import Buttonme from "../Buttonme/Buttonme";
 import { useLiveQuery } from "dexie-react-hooks";
 import { dexieDB, updateDataFromFireStoreAndDexie, updateDataFromDexieTable, addDataToFireStoreAndDexie, addDataToDexieTable, syncDexieToFirestore } from "../../database/cache";
 import { AutocompleteInput, changeDateForm, formatDeliveryTime } from "../utils";
-import moment from "moment";
 
 function createData({
   id,
@@ -62,14 +62,6 @@ const GDConfirm = () => {
       .filter((item) => item.startTKpoint === 'TK01' && item.startGDpoint !== 0)
       .toArray()
   );
-
-  const orderHistories = useLiveQuery(() =>
-    dexieDB
-      .table("orderHistory")
-      .filter((item) => item.historyID.endsWith('2'))
-      .toArray()
-  );
-
   const GDSystem = useLiveQuery(() =>
     dexieDB
       .table("GDsystem")
@@ -84,7 +76,6 @@ const GDConfirm = () => {
       .filter((item) => item.startTKpoint === 'TK01' && item.startGDpoint !== 0)
       .toArray()
   )
-  console.log("sipmnet", dataShipments);
   const [shipments, setShipments] = useState([]);
   useEffect(() => {
     if (GDSystem && dataShipments) {
@@ -166,7 +157,7 @@ const GDConfirm = () => {
     // 1. Update shipment status
     for (const shipmentID of selectedShipments) {
       const updatedShipmentData = { status: "đã xác nhận" };
-      await updateDataFromFireStoreAndDexie("shipment", shipmentID, updatedShipmentData);
+      // await updateDataFromFireStoreAndDexie("shipment", shipmentID, updatedShipmentData);
     }
 
     // 2. Update order histories
@@ -180,28 +171,30 @@ const GDConfirm = () => {
           orderStatus: "Đã xác nhận",
         };
         console.log("Updating historyId", historyId, "with data", updatedHistoryData);
-        return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
+        // return updateDataFromFireStoreAndDexie("orderHistory", historyId, updatedHistoryData);
       });
     });
 
     // 3. Wait for all updates to complete
-     await Promise.all(updateHistoriesPromises);
+    // await Promise.all(updateHistoriesPromises);
     console.log("Đã cập nhật DexieDB thành công!");
 
     // 4. Sync updated data to Firestore
-     syncDexieToFirestore("shipment", "shipment", ["status"]);
-     syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
+    // syncDexieToFirestore("shipment", "shipment", ["status"]);
+    // syncDexieToFirestore("orderHistory", "orderHistory", ["orderStatus"]);
 
-    // 5. Update local state
-    const updatedShipments = shipments.map(shipment =>
-      selectedShipments.includes(shipment.id) ? { ...shipment, status: "đã xác nhận" } : shipment
+    // Cập nhật state frontend
+    const updatedShipments = shipments.map((shipment) =>
+      selectedShipments.includes(shipment.id) && shipment.status === "chưa xác nhận"
+        ? { ...shipment, status: "đã xác nhận" }
+        : shipment
     );
     setShipments(updatedShipments);
 
     // 6. Clear selected shipments
     setSelectedShipments([]);
   };
-  
+
 
   const GDpoints = [
     { label: "Ba Đình" },
@@ -270,8 +263,8 @@ const GDConfirm = () => {
   ];
   const shipmentIDList = shipments.map(shipment => ({ label: shipment.id }));
   const status = [
-    { label: "đã xác nhận"},
-    { label: "chưa xác nhận"},
+    { label: "đã xác nhận" },
+    { label: "chưa xác nhận" },
   ];
   const year = [
     { label: 2023 },
@@ -309,18 +302,18 @@ const GDConfirm = () => {
     setSelectedStatus(value);
   };
 
+
   const filteredShipments = shipments.filter((shipment) => {
     const formattedDeliveryTime = formatDeliveryTime(shipment.date);
     return (
       (!selectedShipmentID ||
         shipment.id === selectedShipmentID.label) &&
       (!selectedGDpoint ||
-        ((shipment.startGDpoint) && shipment.startGDpointName === selectedGDpoint.label)) &&
+        ((shipment.startGDpointName) && (shipment.startGDpointName === selectedGDpoint.label))) &&
       (!selectedDate || formattedDeliveryTime.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth || formattedDeliveryTime.getMonth() + 1 === parseInt(selectedMonth.label)) &&
       (!selectedYear || formattedDeliveryTime.getFullYear() === parseInt(selectedYear.label)) &&
-      (!selectedStatus ||
-        (shipment.confirmed ? "đã xác nhận" : "chưa xác nhận") === selectedStatus.label)
+      (!selectedStatus || (shipment.status === selectedStatus.label))
     );
   });
 
@@ -371,10 +364,10 @@ const GDConfirm = () => {
           <TableRow style={{ backgroundColor: '#f5f5f5' }} >
             <TableCell>
               <Checkbox
-                checked={selectedShipments.length === shipments.length}
+                checked={selectedShipments.length === filteredShipments.length}
                 onChange={() => {
-                  const allSelected = selectedShipments.length === shipments.length;
-                  setSelectedShipments(allSelected ? [] : shipments.map((shipment) => shipment.id));
+                  const allSelected = selectedShipments.length === filteredShipments.length;
+                  setSelectedShipments(allSelected ? [] : filteredShipments.map((shipment) => shipment.id));
                 }}
               />
             </TableCell >
@@ -444,7 +437,7 @@ const GDConfirm = () => {
                   />
                 </TableCell>
                 <TableCell>{shipment.id}</TableCell>
-                <TableCell>{moment(shipment.date, "DD/MM/YYYY").add(1, "days").format("DD/MM/YYYY")}</TableCell>
+                <TableCell>{shipment.date}</TableCell>
                 <TableCell>{shipment.counts}</TableCell>
                 <TableCell>{shipment.startGDpointName}</TableCell>
                 <TableCell>
@@ -467,7 +460,7 @@ const GDConfirm = () => {
       </Box>
 
       <Box mt={2} mb={2}>
-        <Buttonme content="Xác nhận" onClick={handleConfirmShipment} />
+        <Buttonme title="Xác nhận" onClick={handleConfirmShipment} />
       </Box>
 
       <ShipmentDetailsDialog
@@ -482,7 +475,7 @@ const GDConfirm = () => {
       <OrderDetailsDialog
         open={openDetailsOrder}
         onClose={closeDetailsOrder}
-        selectedOrderDetails={selectedOrderDetails}
+        orders={selectedOrderDetails}
       />
 
     </Container>
