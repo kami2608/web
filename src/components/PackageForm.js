@@ -8,8 +8,9 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import InputAdornment from "@mui/material/InputAdornment";
+import InputLabel from "@mui/material/InputLabel";
 import { useState } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 /*import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -59,6 +60,42 @@ export default function PackageForm() {
   const [distance, setDistance] = useState("");
   const [regisDate, setRegisDate] = useState("");
   const [view, setView] = useState("Create");
+
+
+  const genId = async () => {
+    try {
+      const count = await dexieDB.orders.count();
+      const newId = `DH${count.toString().padStart(3, "0")}`;
+      setInputs((values) => ({ ...values, id: newId }));
+    } catch (error) {
+      console.error("Lỗi khi lấy số lượng bản ghi: ", error);
+    }
+    //Đọc trong firestore
+    /*try {
+      // Đọc tất cả các đơn hàng để lấy id của đơn hàng cuối cùng
+      const ordersCollection = collection(fireDB, "orders");
+      const querySnapshot = await getDocs(ordersCollection);
+
+      // Tìm id cuối cùng
+      let lastOrderId = "";
+      querySnapshot.forEach((doc) => {
+        const orderId = doc.id;
+        lastOrderId = orderId;
+      });
+
+      // Tăng giá trị của id lên 1
+      const stt = parseInt(lastOrderId.substring(2)) + 1;
+      const newId = `DH${stt.toString().padStart(3, "0")}`;
+      setInputs((values) => ({ ...values, id: newId }));
+    } catch (error) {
+      console.log("Lỗi khi tạo id đơn hàng", error);
+    }*/
+  };
+  useEffect(() => {
+    genId();
+    return;
+  }, [])
+
   
   const handleBack = () => {
     setView("Create");
@@ -90,6 +127,12 @@ export default function PackageForm() {
   };
 
   const handleReceiverAddressChange = (event) => {
+    setDistance(Math.floor(Math.random() * 5) + 1);
+    setInputs((values) => ({
+      ...values,
+      cost: calculateCost(inputs.weight, distance),
+    }));
+
     const reAddr = event.target.value;
     setInputs((values) => ({ ...values, receiverAddress: reAddr }));
     const splitAddr = reAddr.split(", ");
@@ -113,35 +156,10 @@ export default function PackageForm() {
         }
       });
 
-    setDistance(parseInt(inputs.endGDpoint.substring(2)));
-    setInputs((values) => ({
-      ...values,
-      cost: calculateCost(inputs.weight, distance),
-    }));
+    
   };
 
-  const genId = async () => {
-    try {
-      // Đọc tất cả các đơn hàng để lấy id của đơn hàng cuối cùng
-      const ordersCollection = collection(fireDB, "orders");
-      const querySnapshot = await getDocs(ordersCollection);
-
-      // Tìm id cuối cùng
-      let lastOrderId = "";
-      querySnapshot.forEach((doc) => {
-        const orderId = doc.id;
-        lastOrderId = orderId;
-      });
-
-      // Tăng giá trị của id lên 1
-      const stt = parseInt(lastOrderId.substring(2)) + 1;
-      const newId = `DH${stt.toString().padStart(3, "0")}`;
-      setInputs((values) => ({ ...values, id: newId }));
-    } catch (error) {
-      console.log("Lỗi khi tạo id đơn hàng", error);
-    }
-  };
-
+  
   const handleSubmit = (event) => {
     event.preventDefault();
     //Đưa weight và cost về dạng số
@@ -152,22 +170,6 @@ export default function PackageForm() {
 
     const submit = async () => {
       try {
-        /*// Đọc tất cả các đơn hàng để lấy id của đơn hàng cuối cùng
-        const ordersCollection = collection(fireDB, "orders");
-        const querySnapshot = await getDocs(ordersCollection);
-    
-        // Tìm id cuối cùng
-        let lastOrderId = "DH000";
-        querySnapshot.forEach((doc) => {
-          const orderId = doc.id;
-            lastOrderId = orderId;
-        });
-    
-        // Tăng giá trị của id lên 1
-        const stt = parseInt(lastOrderId.substring(2)) + 1;
-        const id = `DH${stt.toString().padStart(3, "0")}`;
-       // setInputs(values => ({...values, id: id}));*/
-
         const newData = {
           ...inputs,
           //id,
@@ -176,14 +178,11 @@ export default function PackageForm() {
           status: "Chưa xử lý",
         };
         //Thêm vào bảng orders trong FireStore
-        const docRef = doc(fireDB, "orders", newData.id);
-        setDoc(docRef, newData);
-        const newDataDexie = {
-          ...newData,
-          regisDate: regisDate,
-        };
-        //Thêm vào bảng orders trong Dexie
-        addDataToDexieTable("orders", newDataDexie);
+        /*const docRef = doc(fireDB, "orders", newData.id);
+        setDoc(docRef, newData);*/
+      
+        //Thêm vào bảng orders trong dexie và firestore
+        addDataToFireStoreAndDexie("orders", newData);
 
         //setInputs(defaultForm);
       } catch (error) {
@@ -193,6 +192,14 @@ export default function PackageForm() {
 
       //Thêm vào orderHistory trong firestore
       try {
+        const t = {//các trường ngoại trừ id
+          orderId: inputs.id,
+          date: 0,
+          currentLocation: 0,
+          orderStatus: 0,
+          Description: 0,
+        }
+
         const orderHistory1 = {
           historyID: inputs.id + "_1",
           orderId: inputs.id,
@@ -202,37 +209,20 @@ export default function PackageForm() {
           Description: "Đơn hàng nhận tại điểm giao dịch " + center,
         };
         const orderHistory2 = {
+          ...t,
           historyID: inputs.id + "_2",
-          orderId: inputs.id,
-          date: 0,
-          currentLocation: 0,
-          orderStatus: 0,
-          Description: 0,
         };
         const orderHistory3 = {
+          ...t,
           historyID: inputs.id + "_3",
-          orderId: inputs.id,
-          date: 0,
-          currentLocation: 0,
-          orderStatus: 0,
-          Description: 0,
         };
         const orderHistory4 = {
+          ...t,
           historyID: inputs.id + "_4",
-          orderId: inputs.id,
-          date: 0,
-          currentLocation: 0,
-          orderStatus: 0,
-          Description: 0,
         };
-
         const orderHistory5 = {
+          ...t,
           historyID: inputs.id + "_5",
-          orderId: inputs.id,
-          date: 0,
-          currentLocation: 0,
-          orderStatus: 0,
-          Description: 0,
         };
 
         const docRef1 = doc(fireDB, "orderHistory", orderHistory1.historyID);
@@ -245,6 +235,13 @@ export default function PackageForm() {
         setDoc(docRef4, orderHistory4);
         const docRef = doc(fireDB, "orderHistory", orderHistory5.historyID);
         setDoc(docRef, orderHistory5);
+
+        addDataToDexieTable("orderHistory", {...orderHistory1, id: inputs.id + "_1"});
+        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_2"});
+        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_3"});
+        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_4"});
+        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_5"});
+
         alert("Tạo đơn hàng thành công");
         setView("Print");
         //setInputs(defaultForm);
@@ -252,8 +249,6 @@ export default function PackageForm() {
         console.log("Lỗi khi tạo đơn hàng");
       }
     };
-
-    
 
     const formValidate = () => {
       let error = 0;
@@ -277,12 +272,11 @@ export default function PackageForm() {
 
       if (error === 0) submit();
     };
+
     formValidate();
   };
 
   
-
-  //genId();
 
   return (
     <>
@@ -301,7 +295,7 @@ export default function PackageForm() {
             noValidate
             autoComplete="off"
           >
-            <label>Thời gian ghi nhận:</label>
+            
             <Stack direction="row" spacing={2}>
               <TextField
                 required
@@ -310,7 +304,18 @@ export default function PackageForm() {
                 size="small"
                 value={regisDate || ""}
                 onChange={handleDateChange}
+                InputLabelProps={{
+                  shrink: true,
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <InputLabel htmlFor="date">Ngày tạo</InputLabel>
+                    </InputAdornment>
+                  ),
+                }}
               ></TextField>
+              
               {/*<TextField required 
               name="regisTime"
               type="time" 
