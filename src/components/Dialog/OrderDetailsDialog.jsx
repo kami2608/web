@@ -16,7 +16,7 @@ import Buttonme from '../Buttonme/Buttonme';
 const OrderDetailsDialog = ({ open, onClose, order }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ bgcolor: '#003e20', color: "#fff", padding: '10px' }}>
+      <DialogTitle sx={{ bgcolor: '#003e20', color: "#fff",padding: '10px' }}>
         Chi tiết đơn hàng
       </DialogTitle>
       <DialogContent dividers>
@@ -31,14 +31,14 @@ const OrderDetailsDialog = ({ open, onClose, order }) => {
               <Typography variant="body2">Số điện thoại: {order.senderPhone}</Typography>
               <Divider sx={{ my: 2 }} />
               <Typography gutterBottom variant="h6" component="div">
-                Thông tin người nhận
+              Thông tin người nhận
               </Typography>
               <Typography variant="body2">Họ và tên: {order.receiverName}</Typography>
               <Typography variant="body2">Địa chỉ: {order.receiverAddress}</Typography>
               <Typography variant="body2">Số điện thoại: {order.receiverPhone}</Typography>
               <Divider sx={{ my: 2 }} />
               <Typography gutterBottom variant="h6" component="div">
-                Thông tin đơn hàng
+              Thông tin đơn hàng
               </Typography>
               <Typography variant="body2">Loại hàng: {order.type}</Typography>
               <Typography variant="body2">Cân nặng: {order.weight} kg</Typography>
@@ -48,7 +48,7 @@ const OrderDetailsDialog = ({ open, onClose, order }) => {
         )}
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'center', padding: '16px' }}>
-        <Buttonme title="Đóng" onClick={onClose} />
+       <Buttonme title="Đóng" onClick={onClose} />
       </DialogActions>
     </Dialog>
   );
