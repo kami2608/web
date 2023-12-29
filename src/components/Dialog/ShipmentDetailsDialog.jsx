@@ -83,7 +83,10 @@ const ShipmentDetailsDialog = ({ open, onClose, shipment, orders, staff, clickDe
                       <TableRow
                         key={orderID}
                         index={index}
-                        onClick={() => clickDetailOrder(order)} 
+                       
+                        onClick={() => {
+                          clickDetailOrder(order);
+                          console.log("order", order);}} 
                         sx={{ "&:hover": { backgroundColor: "#e8f5e9", cursor: "pointer" } }}
                       >
                         {order ? (
@@ -101,6 +104,8 @@ const ShipmentDetailsDialog = ({ open, onClose, shipment, orders, staff, clickDe
                     );
                   })}
                 </TableBody>
+
+
               </Table>
             </TableContainer>
           </Box>
