@@ -12,14 +12,7 @@ import InputLabel from "@mui/material/InputLabel";
 import Autocomplete from "@mui/material/Autocomplete";
 import { useState } from "react";
 import { useEffect, useRef } from "react";
-/*import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-//import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-//mport TablePagination from '@mui/material/TablePagination';
-import TableRow from '@mui/material/TableRow';
-import RegisteredPackages from '../components/Tables/RegisteredPackages';*/
+
 import {
   dexieDB,
   addDataToFireStoreAndDexie,
@@ -95,7 +88,7 @@ export default function PackageForm() {
   useEffect(() => {
     genId();
     return;
-  }, [])
+  }, [view])
 
   
   const handleBack = () => {
@@ -137,6 +130,8 @@ export default function PackageForm() {
     const reAddr = event.target.value;
     setInputs((values) => ({ ...values, receiverAddress: reAddr }));
     const splitAddr = reAddr.split(", ");
+    
+    if (splitAddr.length >= 2) {
     let city = splitAddr[splitAddr.length - 1];
     let district = splitAddr[splitAddr.length - 2];
 
@@ -157,7 +152,7 @@ export default function PackageForm() {
         }
       });
 
-    
+    }
   };
 
   
