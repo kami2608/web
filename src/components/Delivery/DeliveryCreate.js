@@ -62,7 +62,10 @@ const DeliveryCreate = () => {
   const data = useLiveQuery(() =>
     dexieDB
       .table("orders")
-      .filter((item) => item.endGDpoint == center && item.status == "Đã đến điểm GD nhận")
+      .filter((item) => item.endGDpoint == center && 
+                (item.status == "Đã đến điểm GD nhận" 
+                || item.status == "Đang giao hàng"
+                || item.status.startsWith("Đã giao")))
       .toArray()
   );
 
@@ -71,6 +74,22 @@ const DeliveryCreate = () => {
       .table("orderHistory")
       .filter((item) => item.id.endsWith("4") && item.currentLocation == center) 
   );
+
+  function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
+    cost, status, regisDate) {
+      if (regisDate == undefined) {
+        const a = ["2023-12-27", "2023-12-26", "2023-12-20", "2023-12-25", "2023-12-19"]
+        regisDate = a[Math.floor(Math.random() * 5)];
+      }
+
+      if (status == "Đã đến điểm GD nhận") {
+        status = "Chưa tạo đơn";
+      } else {
+        status = "Đã tạo đơn";
+      }
+    return {id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
+    cost, status, regisDate/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
+  }
 
   useEffect(() => {
     if (data) {
@@ -86,7 +105,7 @@ const DeliveryCreate = () => {
             item.type,
             item.weight,
             item.cost,
-            "chưa tạo đơn", 
+            item.status, 
             item.regisDate)
       );
       setOrders(newRows);
@@ -110,16 +129,6 @@ const DeliveryCreate = () => {
     setDeliveryBill((values) => ({ ...values, id: newId }));
     return;
   }, [openDeliveryForm])
-
-  function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
-    cost, status, regisDate) {
-      if (regisDate == undefined) {
-        const a = ["2023-12-27", "2023-12-26", "2023-12-20", "2023-12-25", "2023-12-19"]
-        regisDate = a[Math.floor(Math.random() * 5)];
-      }
-    return {id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
-    cost, status, regisDate/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
-  }
 
   
 
@@ -151,6 +160,7 @@ const DeliveryCreate = () => {
     try {
       const newData = {
         ...deliveryBill,
+        GDpoint: center,
         status: "chưa xác nhận"
         //id: "S490",  
       }
@@ -299,14 +309,13 @@ const DeliveryCreate = () => {
       (!selectedYear ||
         formattedRegisDate.getFullYear() === parseInt(selectedYear.label)) &&
       (!selectedStatus ||
-        (order.confirmed ? "Đã tạo đơn" : "Chưa tạo đơn") ===
-          selectedStatus.label)
+        order.status  === selectedStatus.label)
     );
   });
 
   const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: "ascending",
+    key: "status",
+    direction: "asc",
   });
 
   // Sorting function
@@ -376,7 +385,7 @@ const DeliveryCreate = () => {
             renderInput={(params) => <TextField {...params} label="Năm" />}
           />
         </Grid>
-      {/*  <Grid item xs={12} sm={6} md={2} lg={2}>
+        <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={status}
@@ -390,7 +399,7 @@ const DeliveryCreate = () => {
               />
             )}
           />
-            </Grid> */}
+            </Grid> 
       </Grid>
 
       <Table>
