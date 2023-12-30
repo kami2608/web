@@ -44,8 +44,8 @@ const TransToTK = () => {
   function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
     cost, status, regisDate) {
       if (regisDate == undefined) {
-        const a = ["2023-12-27", "2023-12-26", "2023-12-20", "2023-12-25", "2023-12-19",
-        "2023-12-05", "2023-11-27", "2023-11-23", "2023-11-13", "2023-10-09",
+        const a = ["2023-11-27", "2023-11-26", "2023-11-20", "2023-11-25", "2023-11-19",
+        "2023-11-05", "2023-10-27", "2023-11-23", "2023-11-13", "2023-10-09",
         "2023-09-20", "2023-09-19"]
         regisDate = a[Math.floor(Math.random() * 12)];
       }
@@ -135,8 +135,13 @@ const TransToTK = () => {
 
   const genId = async () => {
     try {
-      const count = await dexieDB.shipment.count();
-      const newId = `S${count.toString().padStart(3, "0")}`;
+      const lastRecord = await dexieDB.shipment
+      .reverse()
+      .first();
+     
+      const stt = lastRecord ? parseInt(lastRecord.id.substring(1)) : 600;
+      const newId = `S${(stt+1).toString().padStart(3, "0")}`;
+      
       setShipment((values) => ({ ...values, id: newId }));
     } catch (error) {
       console.error("Lỗi khi lấy số lượng bản ghi: ", error);
@@ -170,25 +175,19 @@ const TransToTK = () => {
 
         //update bảng orderHistory
         const docRef = doc(fireDB, "orderHistory", selectedOrders[i]+"_2");
-        const querySnapshot = getDoc(docRef);
+        //const querySnapshot = getDoc(docRef);
         const newHistoryLine = {
+          historyID: selectedOrders[i] + "_2",
+          orderId: selectedOrders[i],
           date: shipment.createDate,
           orderStatus: "Đã tạo đơn",
           currentLocation: diemTK,
           Description: "Chuyển đến điểm " + diemTK,
         }
-        setDoc(docRef, newHistoryLine, {merge: true});
+        setDoc(docRef, newHistoryLine);
 
         await dexieDB.table("orderHistory")
-          .where("id")
-          .equals(selectedOrders[i]+"_2")
-          .modify((record) => {
-            record.date = shipment.createDate;
-            record.orderStatus = "Đã tạo đơn";
-            record.currentLocation = diemTK;
-            record.Description = "Chuyển đến điểm " + diemTK;
-          })
-
+          .add({...newData, id: selectedOrders[i] + "_2"});
       }
       
       //
