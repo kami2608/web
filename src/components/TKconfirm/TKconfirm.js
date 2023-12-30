@@ -41,6 +41,7 @@ const TKconfirm = () => {
 
   const [shipments, setShipments] = useState([]);
 
+  const [selectedShipmentID, setSelectedShipmentID] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -226,7 +227,6 @@ const TKconfirm = () => {
   };
 
   const handleConfirmShipment = async() => {
-    
     if (selectedShipments.length > 0) {
       await submit();
     }
@@ -298,6 +298,8 @@ const submit = async() => {
     
   };
 
+  const shipmentID = shipments.map((s) => ({ label: s.shipmentID }));
+
   const status = [{ label: "Chưa xác nhận" }, { label: "Đã xác nhận" }];
   const year = [
     { label: "2020" },
@@ -316,10 +318,11 @@ const submit = async() => {
   const month = createArray(1, 12);
   const date = createArray(1, 31);
 
-  /*  const handleTransactionPointChange = (event, value) => {
-    setSelectedTransactionPoint(value);
-  };*/
-
+  
+  const handleShipmentIDChange = (event, value) => {
+    setSelectedShipmentID(value);
+  };
+  
   const handleDateChange = (event, value) => {
     setSelectedDate(value);
   };
@@ -349,6 +352,8 @@ const submit = async() => {
     const formattedDate = formatTime(shipment.createDate);
 
     return (
+      (!selectedShipmentID || 
+        shipment.id === selectedShipmentID.label) &&
       (!selectedDate ||
         formattedDate.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth ||
@@ -356,8 +361,7 @@ const submit = async() => {
       (!selectedYear ||
         formattedDate.getFullYear() === parseInt(selectedYear.label)) &&
       (!selectedStatus ||
-        (shipment.confirmed ? "Đã xác nhận" : "Chưa xác nhận") ===
-          selectedStatus.label)
+        shipment.status === selectedStatus.label)
     );
   });
 
@@ -393,6 +397,15 @@ const submit = async() => {
     <Container>
       <h3>Xác nhận hàng về từ điểm tập kết</h3>
       <Grid container spacing={2}>
+      <Grid item xs={12} sm={6} md={2} lg={2}>
+          <Autocomplete
+            disablePortal
+            options={shipmentID}
+            value={selectedShipmentID}
+            onChange={handleShipmentIDChange}
+            renderInput={(params) => <TextField {...params} label="Mã đơn chuyển" />}
+          />
+        </Grid>
         <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
