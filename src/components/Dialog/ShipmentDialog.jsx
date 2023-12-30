@@ -198,7 +198,7 @@ const ShipmentDialog = ({ open, onClose, onConfirm, orders, NVTKacc }) => {
           Xác nhận
         </Button>
         <Button
-          onClick={handleConfirmClick}
+          onClick={onClose}
           variant="contained"
           sx={{
             bgcolor: "#4CAF50",
