@@ -95,7 +95,7 @@ export default function PackageForm() {
   useEffect(() => {
     genId();
     return;
-  }, [])
+  }, [view]);
 
   
   const handleBack = () => {
@@ -131,32 +131,35 @@ export default function PackageForm() {
     setDistance(Math.floor(Math.random() * 5) + 1);
     setInputs((values) => ({
       ...values,
-      cost: calculateCost(inputs.weight, distance),
+      cost: Math.round(calculateCost(inputs.weight, distance)),
     }));
 
     const reAddr = event.target.value;
     setInputs((values) => ({ ...values, receiverAddress: reAddr }));
     const splitAddr = reAddr.split(", ");
-    let city = splitAddr[splitAddr.length - 1];
-    let district = splitAddr[splitAddr.length - 2];
-
-    dexieDB.GDsystem.where("name")
-      .equals(district)
-      .first()
-      .then((record) => {
-        if (record) {
-          setInputs((values) => ({ ...values, endGDpoint: record.id }));
-        }
-      });
-    dexieDB.TKsystem.where("name")
-      .equals(city)
-      .first()
-      .then((record) => {
-        if (record) {
-          setInputs((values) => ({ ...values, endTKpoint: record.id }));
-        }
-      });
-
+    if (splitAddr.length >= 2) {
+      let city = splitAddr[splitAddr.length - 1];
+      let district = splitAddr[splitAddr.length - 2];
+  
+      dexieDB.GDsystem.where("name")
+        .equals(district)
+        .first()
+        .then((record) => {
+          if (record) {
+            setInputs((values) => ({ ...values, endGDpoint: record.id }));
+          }
+        });
+      dexieDB.TKsystem.where("name")
+        .equals(city)
+        .first()
+        .then((record) => {
+          if (record) {
+            setInputs((values) => ({ ...values, endTKpoint: record.id }));
+          }
+        });
+  
+    }
+    
     
   };
 
@@ -299,10 +302,18 @@ export default function PackageForm() {
             
             <Stack direction="row" spacing={2}>
               <TextField
+              required
+              name="id"
+              label="Mã đơn hàng"
+              fullWidth
+              value={inputs.id}
+              onChange={handleChange}
+              />
+              <TextField
                 required
                 name="regisDate"
                 type="date"
-                size="small"
+                fullWidth
                 value={regisDate || ""}
                 onChange={handleDateChange}
                 InputLabelProps={{
@@ -317,27 +328,15 @@ export default function PackageForm() {
                 }}
               ></TextField>
               
-              {/*<TextField required 
-              name="regisTime"
-              type="time" 
-              size="small" 
-              value={inputs.regisTime || ""}
-              onChange={handleChange}>
-              </TextField>*/}
             </Stack>
             <Stack direction="row" spacing={2}>
-            <TextField
-              required
-              name="id"
-              label="Mã đơn hàng"
-              value={inputs.id}
-              onChange={handleChange}
-            />
+            
             {/*Thông tin về 4 điểm GD/TK gửi nhận mà bưu gửi đi qua*/}
             <TextField
               required
               name="startGDpoint"
               label="Điểm giao dịch gửi"
+              fullWidth
               value={inputs.startGDpoint}
               onChange={handleChange}
             />
@@ -346,6 +345,7 @@ export default function PackageForm() {
               required
               name="startTKpoint"
               label="Điểm tập kết gửi"
+              fullWidth
               value={inputs.startTKpoint}
               onChange={handleChange}
             />
@@ -354,6 +354,7 @@ export default function PackageForm() {
               required
               name="endTKpoint"
               label="Điểm tập kết nhận"
+              fullWidth
               value={inputs.endTKpoint}
               onChange={handleChange}
             />
@@ -362,6 +363,7 @@ export default function PackageForm() {
               required
               name="endGDpoint"
               label="Điểm giao dịch nhận"
+              fullWidth
               value={inputs.endGDpoint}
               onChange={handleChange}
             />
