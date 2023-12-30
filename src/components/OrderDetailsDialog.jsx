@@ -49,6 +49,20 @@ const OrderDetailsDialog = ({ open, onClose, selectedOrderDetails }) => {
               <Typography variant="body2">
                 Số điện thoại: {selectedOrderDetails.receiverPhone}
               </Typography>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography gutterBottom variant="h6" component="div">
+                Thông tin hàng gửi
+              </Typography>
+              <Typography variant="body2">
+                Phân loại: {selectedOrderDetails.type}
+              </Typography>
+              <Typography variant="body2">
+                Khối lượng: {selectedOrderDetails.weight} kg
+              </Typography>
+              <Typography variant="body2">
+                Giá cước: {selectedO
             </CardContent>
           </Card>
         )}
