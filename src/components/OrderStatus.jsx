@@ -10,35 +10,6 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { useLiveQuery } from "dexie-react-hooks";
 import { dexieDB } from "../database/cache";
 
-// const darkGreenTheme = createTheme({
-//   palette: {
-//     primary: {
-//       main: '#003300', // Dark green color
-//     },
-//     secondary: {
-//       main: '#f1f2ec',
-//     },
-//     background: {
-//       default: '#e0e0e0',
-//       paper: '#ffffff',
-//     },
-//   },
-//   typography: {
-//     fontFamily: 'Arial, sans-serif',
-//     h4: {
-//       fontWeight: 600,
-//     },
-//     h6: {
-//       fontWeight: 600,
-//     },
-//     body1: {
-//       fontSize: '1rem',
-//     },
-//   },
-//   components: {
-//     // Your component overrides here
-//   },
-// });
 
 const darkGreenTheme = createTheme({
   palette: {
@@ -101,13 +72,13 @@ const darkGreenTheme = createTheme({
 function getStatusIcon(status) {
   switch (status) {
     case 'Đang chờ xử lý':
-      return <CheckCircleOutlineIcon color="success" />;
+      return <CheckCircleOutlineIcon color="action" />;
     case 'Đang vận chuyển':
       return <LocalShippingIcon color="primary" />;
     case 'Đã giao':
       return <CheckCircleOutlineIcon color="success" />;
     default:
-      return <AccessTimeIcon color="action" />;
+      return <AccessTimeIcon color="success" />;
   }
 }
 
