@@ -17,6 +17,7 @@ import {
   Paper,
   Typography,
   Snackbar,
+  Pagination
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ShipmentDialog from "./CreateShipmentDialog";
@@ -34,7 +35,7 @@ const TransToTK = () => {
   const data = useLiveQuery(() =>
     dexieDB
       .table("orders")
-      .filter((item) => item.startGDpoint == center && item.status == "Chưa xử lý")
+      .filter((item) => item.startGDpoint == center) //&& item.status == "Chưa xử lý")
       .toArray()
   );
 
@@ -42,7 +43,13 @@ const TransToTK = () => {
 
   function createData(id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
     cost, status, regisDate) {
-      if (regisDate == undefined) regisDate = "2023-12-23";
+      if (regisDate == undefined) {
+        const a = ["2023-12-27", "2023-12-26", "2023-12-20", "2023-12-25", "2023-12-19",
+        "2023-12-05", "2023-11-27", "2023-11-23", "2023-11-13", "2023-10-09",
+        "2023-09-20", "2023-09-19"]
+        regisDate = a[Math.floor(Math.random() * 12)];
+      }
+      if (status !== "Chưa xử lý") status = "Đã tạo đơn";
     return {id, senderName, senderPhone, senderAddress, receiverName, receiverPhone, receiverAddress, type, weight,
     cost, status, regisDate/*, startGDpoint, startTKpoint, endTKpoint, endGDpoint*/ };
   }
@@ -98,7 +105,10 @@ const TransToTK = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
+
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const clickDetailOrder = (order) => {
     setSelectedOrderDetails(order);
@@ -246,7 +256,7 @@ const TransToTK = () => {
     { label: 2022 },
     { label: 2023 },
   ];
-  const status = [{ label: "Chưa tạo đơn" }, { label: "Đã tạo đơn" }];
+  const status = [{ label: "Chưa xử lý" }, { label: "Đã tạo đơn" }];
   const createArray = (start, end) => {
     let array = [];
     for (let i = start; i <= end; i++) {
@@ -298,8 +308,7 @@ const TransToTK = () => {
     const formattedRegisDate = new Date(order.regisDate); //formatTime(order.regisDate);
     return (
       (!selectedOrderID || order.id === selectedOrderID.label) &&
-      /*(!selectedTransactionPoint ||
-        order.transactionPoint === selectedTransactionPoint.label) &&*/
+      
       (!selectedDate ||
         formattedRegisDate.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth ||
@@ -307,14 +316,13 @@ const TransToTK = () => {
       (!selectedYear ||
         formattedRegisDate.getFullYear() === parseInt(selectedYear.label)) &&
       (!selectedStatus ||
-        (order.confirmed ? "Đã tạo đơn" : "Chưa tạo đơn") ===
-          selectedStatus.label)
+        order.status  === selectedStatus.label)
     );
   });
 
   const [sortConfig, setSortConfig] = useState({
-    key: null,
-    direction: "ascending",
+    key: "status",
+    direction: "asc",
   });
 
   // Sorting function
@@ -384,7 +392,7 @@ const TransToTK = () => {
             renderInput={(params) => <TextField {...params} label="Năm" />}
           />
         </Grid>
-     {/*   <Grid item xs={12} sm={6} md={2} lg={2}>
+        <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={status}
@@ -398,7 +406,7 @@ const TransToTK = () => {
               />
             )}
           />
-            </Grid> */}
+            </Grid> 
       </Grid>
 
       <Table>
@@ -445,18 +453,7 @@ const TransToTK = () => {
                 onClick={() => sortData("weight")}
               />
             </TableCell>
-            {/*<TableCell>
-              <strong>Từ điểm giao dịch</strong>
-              <TableSortLabel
-                active={sortConfig.key === "transactionPoint"}
-                direction={
-                  sortConfig.key === "transactionPoint"
-                    ? sortConfig.direction
-                    : "asc"
-                }
-                onClick={() => sortData("transactionPoint")}
-              />
-            </TableCell>*/}
+            
             <TableCell>
               <strong>Ngày gửi</strong>
               <TableSortLabel
@@ -483,7 +480,9 @@ const TransToTK = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {getSortedData(filteredOrders).map((order) => (
+          {getSortedData(filteredOrders)
+          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+          .map((order) => (
             <TableRow
               key={order.id}
               sx={{
@@ -518,6 +517,14 @@ const TransToTK = () => {
           ))}
         </TableBody>
       </Table>
+
+      <Box mt={2} mb={2} display="flex" justifyContent="flex-end">
+        <Pagination
+          count={Math.ceil(filteredOrders.length / rowsPerPage)}
+          page={page + 1}
+          onChange={(event, newPage) => setPage(newPage - 1)}
+        />
+      </Box>
 
       <Box mt={2} mb={2}>
         <Button
