@@ -81,8 +81,8 @@ const DeliveryConfirm = () => {
   const [selectedDeliveryBills, setSelectedDeliveryBills] = useState([]);
   const [selectedDeliveryDetails, setSelectedDeliveryDetails] = useState(null);
   const [selectedOrders, setSelectedOrders] = useState([]);
-  // const [selectedTransactionPoint, setSelectedTransactionPoint] =useState(null);
 
+  const [filterByID, setFilterByID] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
@@ -91,7 +91,8 @@ const DeliveryConfirm = () => {
 
   const getDeliveryBills = async() => {
     const deliRef = collection(fireDB, "delivery");
-    const q = query(deliRef, where('Gdpoint', '==', center), where('status', '==', 'chưa xác nhận'));
+    const q = query(deliRef, where('Gdpoint', '==', center), 
+              where('status', '==', 'chưa xác nhận'));
     const querySnapshot = await getDocs(q);
     const fetchedDelis = [];
     querySnapshot.forEach((doc) => {
@@ -111,7 +112,7 @@ const DeliveryConfirm = () => {
   useEffect(() => {
     console.log("getDeli:");
     getDeliveryBills();
-  }, [selectedDeliveryBills]);
+  }, []);
 
   //Sự kiện Xem chi tiết đơn chuyển; Nhấn VisibilityIcon
   const clickDetailsDelivery = (deliveryDetails) => {
@@ -184,6 +185,7 @@ const DeliveryConfirm = () => {
     console.log("Các DH đc chọn: ", selectedOrders);
   };
 
+  // 2 hàm xử lý giao thành công/ không thành công
   const handleConfirmDelivery = async() => {
     if (selectedDeliveryBills.length > 0) {
       await submit(true);
@@ -208,6 +210,7 @@ const DeliveryConfirm = () => {
     setSelectedDeliveryBills([]);
     setSelectedOrders([]);
   }
+
   //Ghi vào CSDL
   const submit = async(isSuccess) => {
     const msg = isSuccess ? "thành công" : "không thành công"
@@ -253,6 +256,7 @@ const DeliveryConfirm = () => {
   };
 
   
+  const deliveryID = deliveryBills.map((b) => ({ label: b.id }));
   const status = [{ label: "Chưa xác nhận" }, { label: "Thành công" }, { label: "Không thành công" }];
   const year = [
     { label: 2020 },
@@ -274,6 +278,10 @@ const DeliveryConfirm = () => {
   /*  const handleTransactionPointChange = (event, value) => {
     setSelectedTransactionPoint(value);
   };*/
+
+  const handleDeliveryIDChange = (event, value) => {
+    setFilterByID(value);
+  };
 
   const handleDateChange = (event, value) => {
     setSelectedDate(value);
@@ -304,6 +312,8 @@ const DeliveryConfirm = () => {
     const formattedDate = formatTime(delivery.createDate);
 
     return (
+      (!filterByID || 
+        delivery.id === filterByID.label) &&
       (!selectedDate ||
         formattedDate.getDate() === parseInt(selectedDate.label)) &&
       (!selectedMonth ||
@@ -311,9 +321,8 @@ const DeliveryConfirm = () => {
       (!selectedYear ||
         formattedDate.getFullYear() === parseInt(selectedYear.label)) &&
       (!selectedStatus ||
-        (delivery.confirmed ? "Đã xác nhận" : "Chưa xác nhận") ===
-          selectedStatus.label)
-    );
+        delivery.status === selectedStatus.label
+      ))
   });
 
   const [sortConfig, setSortConfig] = useState({
@@ -349,6 +358,21 @@ const DeliveryConfirm = () => {
       <h2>Xác nhận giao hàng</h2>
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={2} lg={2}>
+        
+          <Autocomplete
+            disablePortal
+            options={deliveryID}
+            value={filterByID}
+            onChange={handleDeliveryIDChange}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Đơn giao hàng"
+              />
+            )}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={date}
@@ -375,7 +399,7 @@ const DeliveryConfirm = () => {
             renderInput={(params) => <TextField {...params} label="Năm" />}
           />
         </Grid>
-        {/*<Grid item xs={12} sm={6} md={2} lg={2}>
+        <Grid item xs={12} sm={6} md={2} lg={2}>
           <Autocomplete
             disablePortal
             options={status}
@@ -389,7 +413,7 @@ const DeliveryConfirm = () => {
               />
             )}
           />
-        </Grid>*/}
+        </Grid>
             </Grid>
 
       <Table>
@@ -497,9 +521,10 @@ const DeliveryConfirm = () => {
         </TableBody>
       </Table>
 
-      <Stack direction="row" spacing={2}>
+     
 
       <Box mt={2} mb={2}>
+        <Stack direction="row" spacing={2}>
         <Button
           variant="contained"
           style={{ backgroundColor: "#4CAF50", color: "#fff" }}
@@ -510,9 +535,6 @@ const DeliveryConfirm = () => {
           Giao thành công
         </Button>
 
-      </Box>
-
-      <Box mt={2} mb={2}>
         <Button
           variant="contained"
           style={{ backgroundColor: "#4CAF50", color: "#fff" }}
@@ -522,9 +544,10 @@ const DeliveryConfirm = () => {
         >
           Giao không thành công
         </Button>
+        </Stack>
       </Box>
 
-      </Stack>
+      
 
       <DeliveryDetailsDialog
         open={openDetailsDelivery}
@@ -542,4 +565,3 @@ const DeliveryConfirm = () => {
 };
 
 export default DeliveryConfirm;
-
