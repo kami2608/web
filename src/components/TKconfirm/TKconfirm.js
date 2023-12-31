@@ -13,10 +13,7 @@ import {
   TextField,
   Box,
   Autocomplete,
-  //Form,
-  //FormGroup,
-  //TableContainer,
-  //Tab,
+  Pagination,
   TableSortLabel,
   Grid,
 } from "@mui/material";
@@ -46,6 +43,9 @@ const TKconfirm = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const data = useLiveQuery(() =>
     dexieDB
@@ -269,6 +269,9 @@ const submit = async() => {
           .modify((order) => {
             order.status = "Đã đến điểm GD nhận";
           })
+        //update firestore bảng orders
+        const docRef2 = doc(fireDB, "orders", selectedOrders[i]);
+        setDoc(docRef2, {status: "Đã đến điểm GD nhận"}, {merge: true});
       
 
         //update bảng orderHistory trong firestore
@@ -283,7 +286,7 @@ const submit = async() => {
 
         //update bảng history trong dexie
         await dexieDB.table("orderHistory")
-          .where("id")
+          .where("historyID")
           .equals(selectedOrders[i]+"_4")
           .modify((s) => {
             s.orderStatus = "Đã xác nhận";
@@ -522,7 +525,9 @@ const submit = async() => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {getSortedData(filteredShipments).map((shipment) => (
+          {getSortedData(filteredShipments)
+          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+          .map((shipment) => (
             <TableRow
               key={shipment.shipmentID}
               sx={{
@@ -556,6 +561,14 @@ const submit = async() => {
           ))}
         </TableBody>
       </Table>
+
+      <Box mt={2} mb={2} display="flex" justifyContent="flex-end">
+        <Pagination
+          count={Math.ceil(filteredShipments.length / rowsPerPage)}
+          page={page + 1}
+          onChange={(event, newPage) => setPage(newPage - 1)}
+        />
+      </Box>
 
       <Box mt={2} mb={2}>
         <Button
