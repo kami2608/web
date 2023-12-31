@@ -161,21 +161,37 @@ const TransToTK = () => {
         status: "chưa xác nhận"
         //id: "S490",  
       }
-      //thêm vào bảng shipment trong firestore và dexie
+      //thêm vào bảng shipment trong firestore
       const docRef = doc(fireDB, "shipment", newData.id);
       setDoc(docRef, newData);
-      addDataToDexieTable ("shipment", {...newData, id: shipment.id});
+      //thêm vào shipment trong dexie
+      const newDexiData = {
+        id: shipment.shipmentID,
+        date: shipment.createDate,
+        counts: shipment.Counts,
+        ordersList: shipment.details,
+        startGDpoint: shipment.startGDpoint,
+        startTKpoint: shipment.startTKpoint,
+        endTKpoint: shipment.endTKpoint,
+        endGDpoint: shipment.endGDpoint,
+        startGDpointName: shipment.startGDpoint,
+        startTKpointName: shipment.startTKpoint,
+        endTKpointName: shipment.endTKpoint,
+        endGDpointName: shipment.endGDpoint,
+        status: "chưa xác nhận"
+      }
+      addDataToDexieTable ("shipment", newDexiData);
 
       
       for (let i = 0; i < selectedOrders.length; i++) {
         //update dexie bảng orders
         const data = orders.find(obj => obj.id === selectedOrders[i]);
         const newData = {...data, status: "Đang chuyển đến điểm TK gửi"};
-        updateDataFromDexieTable("orders", selectedOrders[i], newData);
+        updateDataFromFireStoreAndDexie("orders", selectedOrders[i], newData);
 
         //update bảng orderHistory
         const docRef = doc(fireDB, "orderHistory", selectedOrders[i]+"_2");
-        //const querySnapshot = getDoc(docRef);
+        
         const newHistoryLine = {
           historyID: selectedOrders[i] + "_2",
           orderId: selectedOrders[i],
