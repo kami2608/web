@@ -65,8 +65,12 @@ export default function PackageForm() {
 
   const genId = async () => {
     try {
-      const count = await dexieDB.orders.count();
-      const newId = `DH${count.toString().padStart(3, "0")}`;
+      const lastRecord = await dexieDB.orders
+      .reverse()
+      .first();
+     
+      const stt = lastRecord ? parseInt(lastRecord.id.substring(2)) : 600;
+      const newId = `DH${(stt+1).toString().padStart(3, "0")}`;
       setInputs((values) => ({ ...values, id: newId }));
     } catch (error) {
       console.error("Lỗi khi lấy số lượng bản ghi: ", error);
@@ -196,14 +200,6 @@ export default function PackageForm() {
 
       //Thêm vào orderHistory trong firestore
       try {
-        const t = {//các trường ngoại trừ id
-          orderId: inputs.id,
-          date: 0,
-          currentLocation: 0,
-          orderStatus: 0,
-          Description: 0,
-        }
-
         const orderHistory1 = {
           historyID: inputs.id + "_1",
           orderId: inputs.id,
@@ -212,39 +208,12 @@ export default function PackageForm() {
           orderStatus: "Đang chờ xử lý",
           Description: "Đơn hàng nhận tại điểm giao dịch " + center,
         };
-        const orderHistory2 = {
-          ...t,
-          historyID: inputs.id + "_2",
-        };
-        const orderHistory3 = {
-          ...t,
-          historyID: inputs.id + "_3",
-        };
-        const orderHistory4 = {
-          ...t,
-          historyID: inputs.id + "_4",
-        };
-        const orderHistory5 = {
-          ...t,
-          historyID: inputs.id + "_5",
-        };
-
+        
         const docRef1 = doc(fireDB, "orderHistory", orderHistory1.historyID);
         setDoc(docRef1, orderHistory1);
-        const docRef2 = doc(fireDB, "orderHistory", orderHistory2.historyID);
-        setDoc(docRef2, orderHistory2);
-        const docRef3 = doc(fireDB, "orderHistory", orderHistory3.historyID);
-        setDoc(docRef3, orderHistory3);
-        const docRef4 = doc(fireDB, "orderHistory", orderHistory4.historyID);
-        setDoc(docRef4, orderHistory4);
-        const docRef = doc(fireDB, "orderHistory", orderHistory5.historyID);
-        setDoc(docRef, orderHistory5);
 
         addDataToDexieTable("orderHistory", {...orderHistory1, id: inputs.id + "_1"});
-        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_2"});
-        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_3"});
-        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_4"});
-        addDataToDexieTable("orderHistory", {...t, id: inputs.id + "_5"});
+
 
         alert("Tạo đơn hàng thành công");
         setView("Print");
@@ -470,7 +439,7 @@ export default function PackageForm() {
                 <TextField
                   required
                   name="cost"
-                  label="Giá trị hàng"
+                  label="Giá cước"
                   type="number"
                   InputProps={{
                     startAdornment: (
@@ -495,4 +464,6 @@ export default function PackageForm() {
     </>
   );
 }
+
+
 
