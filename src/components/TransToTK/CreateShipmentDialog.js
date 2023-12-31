@@ -45,7 +45,7 @@ const ShipmentDialog = ({
           <TableCell>{orderDetails.id}</TableCell>
           <TableCell>{orderDetails.type}</TableCell>
           <TableCell>{orderDetails.weight}</TableCell>
-          {/*<TableCell>{orderDetails.deliveryTime}</TableCell>*/}
+          <TableCell>{orderDetails.cost}</TableCell>
         </TableRow>
       );
     });
@@ -136,7 +136,7 @@ const ShipmentDialog = ({
               <TableCell sx={{ color: "#fff" }}>Mã Đơn Hàng</TableCell>
               <TableCell sx={{ color: "#fff" }}>Loại Hàng</TableCell>
               <TableCell sx={{ color: "#fff" }}>Cân Nặng</TableCell>
-              {/*<TableCell sx={{ color: "#fff" }}>Thời gian chuyển đến</TableCell>*/}
+              <TableCell sx={{ color: "#fff" }}>Giá cước</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>{renderOrderRows()}</TableBody>
